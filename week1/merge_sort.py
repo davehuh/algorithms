@@ -23,29 +23,31 @@ class MergeSort:
         a = ul[:split_index]
         b = ul[split_index:len(ul)]
         output = [None]*len(ul)
-        print(a, b)
+     
+        # split and sort
+        if len(a) > 1:
+            a = self.mergeSort(a)
+        if len(b) > 1:
+            b = self.mergeSort(b)
 
+        # merge
         i = 0
         j = 0
         for idx in range(len(output)):
-            if i >= len(a)-1 and j <= len(b)-1:
-                output[idx:] = self.mergeSort(b)
+            if i > len(a) - 1 and j > len(b) - 1:
                 break
-            if j >= len(b)-1 and i <= len(a)-1:
-                output[idx:] = self.mergeSort(a)
+            if i > len(a) - 1 or len(a) < 1:
+                output[idx:] = b[j:]
                 break
-            
-            #split
-            if len(a) > 1:
-                output[idx:]
-
-
+            if j > len(b) - 1 or len(b) < 1:
+                output[idx:] = a[i:]
+                break
             if a[i] < b[j]:
                 output[idx] = a[i]
                 i += 1
             elif a[i] == b[j]:
                 output[idx] = a[i]
-                output[idx+1] = b[j]
+                output[idx+1] = a[i]
                 i += 1
                 j += 1
                 idx += 1
@@ -54,6 +56,7 @@ class MergeSort:
                 j += 1
 
         print(output)
+
         return output
 
 
