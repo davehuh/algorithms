@@ -55,12 +55,18 @@ class CountInversions:
                 output[idx] = left[i]
                 i += 1
             else:
+                inversions += len(left) - i
                 output[idx] = right[j]
-                inversions += 1
                 j += 1
 
         print(output, inversions)
         return inversions, output
+
+
+    def countSplitInversions(self, left, right):
+        """returns count of split inversions"""
+        inversions = 0
+        return inversions 
 
 
 if __name__ == "__main__":
