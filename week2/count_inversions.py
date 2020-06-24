@@ -20,7 +20,7 @@ class CountInversions:
             sys.exit(1)
 
         if len(ul) < 2:
-            return 0
+            return 0, ul
 
         ul = list(map(int, ul))
 
@@ -29,21 +29,26 @@ class CountInversions:
         left = ul[:splitPoint]
         right = ul[splitPoint:]
         output = [None]*len(ul)
+        inversions = 0
 
         # Sort left and count inversions
         if len(left) > 1:
-            left = self.countInversions(ul)
+            left_inversions, left = self.countInversions(left)
+            inversions += left_inversions
         if len(right) > 1:
-            right = self.countInversions(ul)
+            right_inversions, right = self.countInversions(right)
+            inversions += right_inversions
 
         # Merge
         i = 0
         j = 0
-        inversions = 0
         for idx in range(len(output)):
             if i > len(left) - 1 and j > len(right) - 1:
                 break
             if i > len(left) - 1 or len(left) < 1:
+                output[idx:] = right[j:]
+                break
+            if j > len(right) - 1 or len(right) < 1:
                 output[idx:] = left[i:]
                 break
             if left[i] < right[j]:
@@ -55,9 +60,7 @@ class CountInversions:
                 j += 1
 
         print(output, inversions)
-        
-        return inversions
-
+        return inversions, output
 
 
 if __name__ == "__main__":
