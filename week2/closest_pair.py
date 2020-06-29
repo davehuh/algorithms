@@ -58,7 +58,7 @@ class ClosestPair:
         split_index = math.floor(len(ul)/2)
         a = ul[:split_index]
         b = ul[split_index:]
-        print('a: ', a, '  b: ', b)
+#        print('a: ', a, '  b: ', b)
 
         # do more divide and conquer
         if len(a) > 1:
@@ -66,7 +66,7 @@ class ClosestPair:
         if len(b) > 1:
             b = self.sort_by_dim(b, dim)
 
-        print('ul: ', ul)
+#        print('ul: ', ul)
 
         # merge to generate X
         a_i = 0
@@ -97,10 +97,7 @@ class ClosestPair:
                 X[idx] = b[b_i]
                 b_i += 1
 
-        print('X: ', X)
-
         return X
-
 
 
     def find_closest_pair(self, plane):
@@ -121,9 +118,13 @@ class ClosestPair:
 
         Q, R = self.split_plane(plane)
         # TODO delete
-        print('Q: ', Q, '  R: ', R)
-        Qx, Qy = self.sort_by_dim(Q, 1)
-        Rx, Ry = self.sort_by_dim(R, 2)
+        Qx = self.sort_by_dim(Q, 0)
+        Qy = self.sort_by_dim(Q, 1)
+        Rx = self.sort_by_dim(R, 0)
+        Ry = self.sort_by_dim(R, 1)
+
+        print('Q: ', Qx, Qy)
+        print('R: ', Rx, Ry)
 
 
 if __name__ == "__main__":
