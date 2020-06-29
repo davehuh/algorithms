@@ -237,7 +237,6 @@ class ClosestPair:
         if best_split_pair is not None:
             best_pair = best_split_pair
 
-        print(best_pair)
         return best_pair
 
 
@@ -249,3 +248,4 @@ if __name__ == "__main__":
     unsorted_plane_coordinates = str(sys.argv[1])
     closest_pair = ClosestPair(unsorted_plane_coordinates)
     best_pair = closest_pair.find_closest_pair(closest_pair.plane)
+    print(best_pair)
