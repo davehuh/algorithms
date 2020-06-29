@@ -152,7 +152,6 @@ class ClosestPair:
         # Base case
         p1 = q1 = p2 = q2 = None
 
-        # Q, left-side closest pair
         [p1, q1] = self.closest_pair(Qx, Qy)
         [p2, q2] = self.closest_pair(Rx, Ry)
 
@@ -166,9 +165,49 @@ class ClosestPair:
             best_dist = dist_p2q2
             min_p1q1_p2q2 = [p2, q2]
 
-        print(min_p1q1_p2q2)
-
         return min_p1q1_p2q2
+
+    def closest_split_pair(self, Px, Py, dist):
+        """
+        find the closest pair split between Q and R if the pairs lie
+        within set range (-dist, dist)
+        Input:
+            Px: a copy of P sorted by x
+            Py: a copy of P sorted by y
+            dist: shortest distance calculated and compared between
+                either Q or R
+        Output:
+            [p, q]: closest pair.
+        """
+        best_pair = None
+
+        Qx, Rx = self.split_plane(Px)
+        Qy, Ry = self.split_plane(Py)
+
+        x_bar = Qx[-1][0]
+        Sy_boundary = [x_bar - dist, x_bar + dist]
+
+        Sy = []
+
+        for point in Py:
+            if point[0] >= Sy_boundary[0] and \
+                    point[0] <= Sy_boundary[1]:
+                Sy.append(point)
+
+        if len(Sy) < 2:
+            return None
+
+        best_dist = dist
+        for i in range(len(Sy)):
+            for j in range(min(7, len(Sy)-i-1)):
+                p = Sy[i]
+                q = Sy[i+j+1]
+                tmp_dist = self.calculate_distance(p, q)
+                if tmp_dist < best_dist:
+                    best_dist = tmp_dist
+                    best_pair = [p, q]
+
+        return best_pair
 
     def find_closest_pair(self, plane):
         """
@@ -190,7 +229,15 @@ class ClosestPair:
         Py = self.sort_by_dim(plane, 1)
 
         best_pair = self.closest_pair(Px, Py)
+        best_split_pair = self.closest_split_pair(Px, Py,
+                                    self.calculate_distance(best_pair[0],
+                                    best_pair[1])
+                                                  )
 
+        if best_split_pair is not None:
+            best_pair = best_split_pair
+
+        print(best_pair)
         return best_pair
 
 
