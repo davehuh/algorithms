@@ -58,15 +58,12 @@ class ClosestPair:
         split_index = math.floor(len(ul)/2)
         a = ul[:split_index]
         b = ul[split_index:]
-#        print('a: ', a, '  b: ', b)
 
         # do more divide and conquer
         if len(a) > 1:
             a = self.sort_by_dim(a, dim)
         if len(b) > 1:
             b = self.sort_by_dim(b, dim)
-
-#        print('ul: ', ul)
 
         # merge to generate X
         a_i = 0
@@ -83,7 +80,6 @@ class ClosestPair:
                 break
            
             # value comparisons
-#            print(a[a_i][0], b[b_i][0])
             if a[a_i][dim] < b[b_i][dim]:
                 X[idx] = a[a_i]
                 a_i += 1
@@ -99,6 +95,80 @@ class ClosestPair:
 
         return X
 
+    def calculate_distance(self, vector1, vector2):
+        """Calculates distance between two vectors"""
+        dist = [(a - b)**2 for a, b in zip(vector1, vector2)]
+        dist = math.sqrt(sum(dist))
+        return dist
+
+    def brute_force_closest_pair(self, Px, Py):
+        """
+        Uses brute force iterations to find closest pairs
+        by scanning through list linearly
+        Input:
+            Px: A copy of P sorted by x
+            Py: A copy of P sorted by y
+        Output:
+            closest_pair = [p, q]
+        """
+        # base cases
+        best_dist = None
+        p = q = None
+        if len(Px) < 3:
+            return Px
+        elif len(Px) < 4:
+            for idx in range(len(Px)-1):
+                x_dist = self.calculate_distance(Px[idx], Px[idx + 1]) 
+                y_dist = self.calculate_distance(Py[idx], Py[idx + 1]) 
+                if best_dist is None or x_dist < best_dist:
+                    best_dist = x_dist
+                    p = Px[idx]
+                    q = Px[idx+1]
+                if y_dist < best_dist:
+                    best_dist = y_dist
+                    p = Py[idx]
+                    q = Py[idx+1]
+
+        return [p, q]
+
+    def closest_pair(self, Px, Py):
+        """
+        Output closest pair given sorted copies of points by x and y
+        Assumptions: x and y are sorted
+        """
+        if Px is None or Py is None:
+            print("invalid input")
+            sys.exit(1)
+
+        # base cases
+        if len(Px) < 3:
+            return Px
+        elif len(Px) < 4:
+            return self.brute_force_closest_pair(Px, Py)
+
+        Qx, Rx = self.split_plane(Px)
+        Qy, Ry = self.split_plane(Py)
+
+        # Base case
+        p1 = q1 = p2 = q2 = None
+
+        # Q, left-side closest pair
+        [p1, q1] = self.closest_pair(Qx, Qy)
+        [p2, q2] = self.closest_pair(Rx, Ry)
+
+        dist_p1q1 = self.calculate_distance(p1, q1)
+        dist_p2q2 = self.calculate_distance(p1, q1)
+
+        if dist_p1q1 <= dist_p2q2:
+            best_dist = dist_p1q1
+            min_p1q1_p2q2 = [p1, q1]
+        else:
+            best_dist = dist_p2q2
+            min_p1q1_p2q2 = [p2, q2]
+
+        print(min_p1q1_p2q2)
+
+        return min_p1q1_p2q2
 
     def find_closest_pair(self, plane):
         """
@@ -116,15 +186,12 @@ class ClosestPair:
         if len(plane) < 3:
             return plane
 
-        Q, R = self.split_plane(plane)
-        # TODO delete
-        Qx = self.sort_by_dim(Q, 0)
-        Qy = self.sort_by_dim(Q, 1)
-        Rx = self.sort_by_dim(R, 0)
-        Ry = self.sort_by_dim(R, 1)
+        Px = self.sort_by_dim(plane, 0)
+        Py = self.sort_by_dim(plane, 1)
 
-        print('Q: ', Qx, Qy)
-        print('R: ', Rx, Ry)
+        best_pair = self.closest_pair(Px, Py)
+
+        return best_pair
 
 
 if __name__ == "__main__":
