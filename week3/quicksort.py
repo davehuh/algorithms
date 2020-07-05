@@ -27,24 +27,22 @@ class QuickSort:
         ul = list(map(int, ul))
 
         first_pivot, comp_count_first = \
-            self.quicksort_choose_pivot_first_or_last(ul, "first")
-        last_pivot, comp_count_last = \
-            self.quicksort_choose_pivot_first_or_last(ul, "last")
+            self.quicksort_choose_first_as_pivot(ul)
 
         # TODO
 #        print("final first pivot: ", first_pivot)
-        print("first as pivot: ", comp_count_first)
-        print("last as pivot: ", comp_count_last)
+        print("first as pivot, counts: ", comp_count_first)
+#        print("last as pivot: ", comp_count_last)
 
         return first_pivot
 
-    def calculate_index(self, ul, first_or_last):
+    def calculate_index(self, ul, first_or_last: str):
         """
         Calculates proper index
         Input:
             ul: unsorted list
-            first_or_last: determine whether first or last element is used as pivot
-                    must be "first" or "last"
+            first_or_last: determine whether first or last element
+                            is used as pivot must be "first" or "last"
         Output:
             index
         """
@@ -57,7 +55,7 @@ class QuickSort:
         else:
             return len(ul) - 1
 
-    def quicksort_choose_pivot_first_or_last(self, ul, first_or_last: str):
+    def quicksort_choose_first_as_pivot(self, ul):
         """
         Sort using first element in list as the pivot
         Input:
@@ -69,10 +67,11 @@ class QuickSort:
             comp_count is the number of comparisons
                 that the algorithm performed
         """
+
         if len(ul) < 2:
             return ul, 0
 
-        pivot_idx = self.calculate_index(ul, first_or_last)
+        pivot_idx = 0
         pivot = ul[pivot_idx]
         START_IDX = 1
         idx_include_greater_than_pivot = START_IDX
@@ -80,19 +79,19 @@ class QuickSort:
         # TODO
 #        print("before sorting: ", ul)
 
-        for idx in range(1, len(ul)):
+        for idx in range(START_IDX, len(ul)):
             if ul[idx] < pivot and idx != idx_include_greater_than_pivot:
                 tmp = ul[idx_include_greater_than_pivot]
                 ul[idx_include_greater_than_pivot] = ul[idx]
                 ul[idx] = tmp
-            elif ul[idx] < pivot and idx == idx_include_greater_than_pivot and \
-                    idx < len(ul) - 1:
+                idx_include_greater_than_pivot += 1
+            elif ul[idx] < pivot:
                 idx_include_greater_than_pivot += 1
 
         # TODO
 #        print("after sorting: ", ul)
 
-        new_pivot_idx = idx_include_greater_than_pivot
+        new_pivot_idx = idx_include_greater_than_pivot - 1
         tmp = ul[new_pivot_idx]
         ul[new_pivot_idx] = pivot
         ul[pivot_idx] = tmp
@@ -104,17 +103,15 @@ class QuickSort:
 
         # Remaining partitions need sorting
         # Check left
-        if new_pivot_idx > 1 and new_pivot_idx < len(ul) - 1:
-            ul[:new_pivot_idx-1], tmp_count_left = \
-                self.quicksort_choose_pivot_first_or_last(ul[:new_pivot_idx-1],
-                                                          first_or_last)
+        if new_pivot_idx > 1:
+            ul[:new_pivot_idx], tmp_count_left = \
+                self.quicksort_choose_first_as_pivot(ul[:new_pivot_idx])
             comp_count += tmp_count_left
 
         # Check right
         if new_pivot_idx < len(ul) - 1:
             ul[new_pivot_idx+1:], tmp_count_right = \
-                self.quicksort_choose_pivot_first_or_last(ul[new_pivot_idx+1:],
-                                                          first_or_last)
+                self.quicksort_choose_first_as_pivot(ul[new_pivot_idx+1:])
             comp_count += tmp_count_right
 
         return ul, comp_count
