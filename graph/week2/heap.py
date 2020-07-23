@@ -86,13 +86,14 @@ class heap:
         else:
             smallerChildIdx = rightChildIdx
 
-        if smallerChildIdx <= maxIdx and \
-                self.tree[smallerChildIdx] < self.tree[self.lastIdx]:
+        if self.tree[smallerChildIdx] < self.tree[self.lastIdx]:
             parent = self.tree[self.lastIdx]
             tmp = parent
             self.tree[self.lastIdx] = self.tree[smallerChildIdx]
             self.tree[smallerChildIdx] = tmp
             self.lastIdx = smallerChildIdx
+        else:
+            return
 
         self.bubbleDown()
 
