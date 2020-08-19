@@ -46,14 +46,17 @@ class BFS:
         self.graph = graph
         self.toExplore = []
 
-    def search(self, start, target):
+    def search(self, start, target=None):
         """
-        Traverses through graph from the start node towards the target node
-        if there is a path.
-        Uses breadth-first-search algorithm to find shorest path.
-        Returns shortest path in integer
+        Input:
+            start : start node, where search begins
+            target : if provided, the function will return shortest distance
+                if a node with target value exist
+
+        Output:
+            shortest path distance in int
         """
-        if start is None or target is None:
+        if start is None:
             print("invalid input")
             sys.exit(1)
 
@@ -78,11 +81,18 @@ class BFS:
 
     def findConnectedComponents(self):
         """
-        TODO
         connected components
         yield number of communities in graph
         """
-        raise NotImplementedError
+        if not self.graph:
+            return
+        numConnectedComponents = 1
+        for vertex in self.graph:
+            if not vertex.explored:
+                numConnectedComponents += 1
+                self.search(vertex.value)
+
+        return numConnectedComponents
 
 
 def buildList(al):
@@ -113,5 +123,6 @@ if __name__ == "__main__":
     # find connected components
 
     bfs = BFS(graph)
-    print(bfs.search(5, 6))
-    print(bfs.search(5, 8))
+    print("Path from 5, 6: ", bfs.search(5, 6))
+    print("Path from 5 to 8 (does not exist): ", bfs.search(5, 8))
+    print("Number of connected components: ", bfs.findConnectedComponents())
