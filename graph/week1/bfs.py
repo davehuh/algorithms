@@ -4,14 +4,17 @@ Copyright 2020 Dave Huh
 
 import sys
 
+
 class Node:
     """
     Node of a graph
     """
-    def __init__(self, val, an):
+    def __init__(self, val, edges):
         self.value = val
+        self.edges = edges
         self.explored = False
-        self.adjacentNodes = an
+        self.distance = float("inf")
+
 
 class Graph:
     """
@@ -27,9 +30,11 @@ class Graph:
         self.nodes = [None]*len(al)
         for node in al:
             value = node[0]
-            adjacentList = node[1:]
-            newNode = Node(value, adjacentList)
+            edges = node[1:]
+            newNode = Node(value, edges)
             self.nodes[value - 1] = newNode  # key is 1 - value of nodes
+
+        return self.nodes
 
 
 class BFS:
@@ -37,7 +42,11 @@ class BFS:
     Breadth first search
     Output shortest paths
     """
-    def search(self, graph, start, target):
+    def __init__(self, graph):
+        self.graph = graph
+        self.toExplore = []
+
+    def search(self, start, target):
         """
         Traverses through graph from the start node towards the target node
         if there is a path.
@@ -48,7 +57,24 @@ class BFS:
             print("invalid input")
             sys.exit(1)
 
-        raise NotImplementedError
+        if start == target:
+            return 0
+
+        self.graph[start - 1].distance = 0
+
+        self.toExplore.append(self.graph[start - 1])
+
+        while self.toExplore:
+            node = self.toExplore.pop()
+            if node.value == target:
+                return node.distance
+
+            for edge in node.edges:
+                edge = self.graph[edge - 1]
+                if not edge.explored:
+                    edge.explored = True
+                    edge.distance = node.distance + 1
+                    self.toExplore.append(edge)
 
     def findConnectedComponents(self):
         """
@@ -80,5 +106,12 @@ if __name__ == "__main__":
 
     adjacent_list = buildList(adjacent_list)
     graph = Graph()
-    graph.createGraph(adjacent_list)
-    bfs = BFS()
+    graph = graph.createGraph(adjacent_list)
+
+    # search
+
+    # find connected components
+
+    bfs = BFS(graph)
+    print(bfs.search(5, 6))
+    print(bfs.search(5, 8))
