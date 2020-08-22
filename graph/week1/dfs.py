@@ -2,7 +2,11 @@
 Copyright 2020 Dave Huh
 """
 
+import resource
 import sys
+
+resource.setrlimit(resource.RLIMIT_STACK, (2**29, -1))
+sys.setrecursionlimit(10**6)
 
 
 class Vertex:
@@ -65,10 +69,6 @@ class Graph:
                     if not newEdgeVertex:
                         self.graph[edge - 1] = Vertex(edge)
 
-#   TODO
-#        for vertex in self.graph:
-#            print("vertex: ", vertex.value, " edges: ", vertex.edges)
-
         return self.graph
 
 
@@ -127,10 +127,6 @@ class DFS:
                 self.search(graphList, key)
 
         graphReversed = reverseGraph(graphList)
-
-#   TODO
-#        for vertex in graphReversed:
-#            print("rev vertex: ", vertex.value, " edges: ", vertex.edges)
 
         # Second DFS Loop to compute communities and their pop
         for key in reversed(range(1, len(graphReversed) + 1)):
