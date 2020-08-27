@@ -36,11 +36,9 @@ class Vertex:
 
         # assumes edges is dict type
         for edge in edges:  # edge is a key
-            if self.neighbors:
-                # add edges if not already present or need to update distances
-                edgeAlreadyExist = self.neighbors[edge]
-                if not edgeAlreadyExist or neighbors[edge] != edgeAlreadyExist:
-                    self.neighbors[edge] = neighbors[edge]
+            if edge not in self.neighbors \
+                    or self.neighbors[edge] != neighbors[edge]:
+                self.neighbors[edge] = neighbors[edge]
 
 
 class Graph:
@@ -125,4 +123,4 @@ if __name__ == "__main__":
     graph.buildGraph(adjacencyList)
     graph = graph.graph
     for vertex in graph:
-        print(vertex.value)
+        print("vertex: ", vertex.value, " heads: ", vertex.neighbors)
