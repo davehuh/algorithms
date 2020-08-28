@@ -120,7 +120,8 @@ class ShortestPath:
             if head.scoreFromSource > score:
                 head.scoreFromSource = score
 
-            heapq.heappush(self.verticesNotProcessed, head)
+            if headKey not in self.verticesProcessed:
+                heapq.heappush(self.verticesNotProcessed, head)
 
     def computeShortestPaths(self, source):
         sourceVertex = self.graph[source - 1]
@@ -132,7 +133,8 @@ class ShortestPath:
             sourceVertex.scoreFromSource
         self.determineNextVertexToProcess(sourceVertex)
 
-        while len(self.verticesProcessed) != len(self.graph):
+#        while len(self.verticesProcessed) != len(self.graph):
+        while len(self.verticesNotProcessed) > 0:
 #            print("length: ", len(self.verticesProcessed))
 
             sourceVertex = heapq.heappop(self.verticesNotProcessed)
@@ -140,8 +142,9 @@ class ShortestPath:
             self.verticesProcessed[sourceVertex.value] = \
                 sourceVertex.scoreFromSource
             self.determineNextVertexToProcess(sourceVertex)
-#        for k, v in self.verticesProcessed.items():
-#            print(k, v)
+
+        for k, v in self.verticesProcessed.items():
+            print(k, v)
 
 
 def buildList(al):
@@ -194,8 +197,11 @@ if __name__ == "__main__":
     shortestPaths = ShortestPath(graph)
     shortestPaths.computeShortestPaths(1)
 
-    vertices = [7,37,59,82,99,115,133,165,188,197]
-
-    for vertex in vertices:
-        print("vertex: ", vertex, " dist: ",
-              shortestPaths.shortestPathDistances[vertex])
+#    vertices = [7,37,59,82,99,115,133,165,188,197]
+#
+#    for vertex in vertices:
+#        if vertex in shortestPaths.shortestPathDistances:
+#            print("vertex: ", vertex, " dist: ",
+#                  shortestPaths.shortestPathDistances[vertex])
+#        else:
+#            print("vertex: ", vertex, " dist: inf")
