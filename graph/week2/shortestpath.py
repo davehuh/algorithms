@@ -5,10 +5,14 @@ Implementation of Dijkstra's shortest path algorithm using heap data structure
 
 import sys
 import heapq
+from functools import total_ordering
+import re
 
 # class ShortestPath:
 #    raise NotImplementedError
 
+
+@total_ordering
 class Vertex:
     """
     Value is the value of the vertex
@@ -19,6 +23,7 @@ class Vertex:
         self.value = value
         self.neighbors = {}
         self.explored = False
+        self.scoreFromSource = float("inf")
 
         if neighbors:
             self.addEdges(neighbors)
@@ -39,6 +44,15 @@ class Vertex:
             if edge not in self.neighbors \
                     or self.neighbors[edge] != neighbors[edge]:
                 self.neighbors[edge] = neighbors[edge]
+
+    def __lt__(self, other):
+        return self.scoreFromSource < other.scoreFromSource
+
+    def __eq__(self, other):
+        return self.scoreFromSource == other.scoreFromSource
+
+    def __repr__(self):
+        return '{0.__class__.__name__}(value={0.value})'
 
 
 class Graph:
@@ -75,6 +89,60 @@ class Graph:
                 if not newEdgeVertex:
                     self.graph[edge - 1] = Vertex(edge)
 
+        return self.graph
+
+
+class ShortestPath:
+    """
+    Compute shortest path from source to all vertices with paths in a graph
+    using Dijkstra's implementation
+    """
+    def __init__(self, graphObj):
+        self.graph = graphObj
+        self.verticesProcessed = {}  # X
+        self.verticesNotProcessed = []  # V - X
+        self.shortestPathDistances = {}
+
+    def determineNextVertexToProcess(self, vertex):
+        """
+        Use Dijkstra's greedy criterion to solve which head vertexes
+        in the frontier to process next
+        Input:
+            vertex that needs its neighbors (heads) pushed into queue
+        """
+        sourceScore = vertex.scoreFromSource
+
+        # push all edges (heads) from vertex to heap
+        for headKey in vertex.neighbors:
+            head = self.graph[headKey - 1]
+            distanceTohead = vertex.neighbors[headKey]
+            score = sourceScore + distanceTohead
+            if head.scoreFromSource > score:
+                head.scoreFromSource = score
+
+            heapq.heappush(self.verticesNotProcessed, head)
+
+    def computeShortestPaths(self, source):
+        sourceVertex = self.graph[source - 1]
+        sourceVertex.scoreFromSource = 0
+        sourceVertex.explored = True
+        self.shortestPathDistances[sourceVertex.value] = \
+            sourceVertex.scoreFromSource
+        self.verticesProcessed[sourceVertex.value] = \
+            sourceVertex.scoreFromSource
+        self.determineNextVertexToProcess(sourceVertex)
+
+        while len(self.verticesProcessed) != len(self.graph):
+#            print("length: ", len(self.verticesProcessed))
+
+            sourceVertex = heapq.heappop(self.verticesNotProcessed)
+            sourceVertex.explored = True
+            self.verticesProcessed[sourceVertex.value] = \
+                sourceVertex.scoreFromSource
+            self.determineNextVertexToProcess(sourceVertex)
+#        for k, v in self.verticesProcessed.items():
+#            print(k, v)
+
 
 def buildList(al):
     """
@@ -97,7 +165,8 @@ def buildList(al):
 
     for lineNum in range(len(al)):
         al[lineNum] = al[lineNum].strip()
-        al[lineNum] = al[lineNum].split('\t')
+        al[lineNum] = re.sub('\s+', ' ', al[lineNum])
+        al[lineNum] = al[lineNum].split(' ')
 
         # except this first value, put everything else into dict
         graphList[lineNum] = [(int(al[lineNum][0]))]
@@ -120,7 +189,13 @@ if __name__ == "__main__":
     adjacencyList = textFile.read().splitlines()
     adjacencyList = buildList(adjacencyList)
     graph = Graph()
-    graph.buildGraph(adjacencyList)
-    graph = graph.graph
-    for vertex in graph:
-        print("vertex: ", vertex.value, " heads: ", vertex.neighbors)
+    graph = graph.buildGraph(adjacencyList)
+
+    shortestPaths = ShortestPath(graph)
+    shortestPaths.computeShortestPaths(1)
+
+    vertices = [7,37,59,82,99,115,133,165,188,197]
+
+    for vertex in vertices:
+        print("vertex: ", vertex, " dist: ",
+              shortestPaths.shortestPathDistances[vertex])
