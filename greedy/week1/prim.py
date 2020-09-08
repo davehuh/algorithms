@@ -132,13 +132,10 @@ class MinimumSpanningTree:
             self.cost: the total weight of minimum spanning tree
         """
         selectedNode = random.randrange(1, len(self.graph) + 1, 1)
-#        selectedNode = 1
-        print("random seed: ", selectedNode)
 
         vertex = self.graph[selectedNode]
         heapq.heappush(self.seenEdge, vertex.neighbors[0])
 
-#        while len(self.seenEdge) > 0:
         while len(self.seenVertex) != len(self.graph):
             edge = heapq.heappop(self.seenEdge)
 
@@ -162,52 +159,18 @@ class MinimumSpanningTree:
                         heapq.heapify(otherVertex.neighbors)
                         break
 
-#            print("vertex: ", originVertex.key, "num neighbors: ",
-#                  originVertex.neighbors)
-
             self.cost += edge.weight
             self.seenVertex.add(originVertex.key)
             self.seenVertex.add(otherVertex.key)
-#            print("seen vertex: ", self.seenVertex)
 
             # next in queue
             if originVertex.neighbors:
                 self.seenEdge = self.seenEdge + originVertex.neighbors
                 heapq.heapify(self.seenEdge)
-#                heapq.heappush(self.seenEdge, originEdge)
-#                print("pushing: ", originEdge.weight)
-#                print("from origin: ", originEdge.originVertex,
-#                      "weight: ", originEdge.weight)
-
-#                originOtherVertexKey = originEdge.endVertex
-#                originOtherVertex = self.graph[originOtherVertexKey]
-#                if originOtherVertex.neighbors:
-#                    for i in range(len(originOtherVertex.neighbors)):
-#                        otherVertexEdge = originOtherVertex.neighbors[i]
-#                        if otherVertexEdge.endVertex == \
-#                                originEdge.originVertex:
-#                            originOtherVertex.neighbors.pop(i)
-#                            heapq.heapify(originOtherVertex.neighbors)
-#                            break
 
             if otherVertex.neighbors:
                 self.seenEdge = self.seenEdge + otherVertex.neighbors
                 heapq.heapify(self.seenEdge)
-#                heapq.heappush(self.seenEdge, originEdge)
-#                print("other pushing: ", originEdge.weight)
-#                print("from end: ", originEdge.originVertex,
-#                      "weight: ", originEdge.weight)
-
-#                originOtherVertexKey = originEdge.endVertex
-#                originOtherVertex = self.graph[originOtherVertexKey]
-#                if originOtherVertex.neighbors:
-#                    for i in range(len(originOtherVertex.neighbors)):
-#                        otherVertexEdge = originOtherVertex.neighbors[i]
-#                        if otherVertexEdge.endVertex == \
-#                                originEdge.originVertex:
-#                            originOtherVertex.neighbors.pop(i)
-#                            heapq.heapify(originOtherVertex.neighbors)
-#                            break
 
         return self.cost
 
@@ -225,10 +188,6 @@ if __name__ == "__main__":
     dfGraph = dfGraph.rename(columns={0: 'v1', 1: 'v2', 2: 'cost'})
     weightedGraph = Graph()
     weightedGraph.buildGraph(dfGraph)
-
-#    for vertex in weightedGraph.graph.values():
-#        print("vertex: ", vertex.key)
-#        print(vertex.neighbors)
 
     spanningTree = MinimumSpanningTree(weightedGraph.graph)
     totalWeightsMST = spanningTree.computeWeightsOfMinimumSpanningTree()
