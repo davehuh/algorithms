@@ -5,24 +5,48 @@ Generates minimal spanning tree using Prim's algorithm
 
 import sys
 import heapq
-import pandas as pd
 from functools import total_ordering
+import pandas as pd
 
 
 class Node:
-    def __init__(self, key, neighbors=None):
+    """
+    Vertex of a graph
+    Variables:
+        key: the key of the vertex
+        neighbors: a heap of edges that connect to neighboring nodes
+    """
+    def __init__(self, key):
         self.key = key
+        self.neighbors = []
 
-        if not neighbors:
-            self.neighbors = []
-        else:
-            self.neighbors = neighbors
+    def addEdge(self, neighbor, weight):
+        """
+        Adds a neighboring edge to the node
+
+        Input:
+            neighbor: is the key for the neighboring vertex of the vertex
+            weight: is the weighted distance from the
+                vertex to the neighbor
+        """
+        edge = Edge(neighbor, weight)
+        heapq.heappush(self.neighbors, edge)
 
 
 @total_ordering
 class Edge:
-    def __init__(self, key, weight):
-        self.key = key
+    """
+    Edge in a graph
+    This object is a component of the node object.
+    It assumes that the edge is stored in an origin node object
+    Hence no need to store pointers or keys to the origin.
+
+    Global variables:
+        endVertex: vertex connected by the edge
+        weight: weighted distance from origin vertex to end vertex
+    """
+    def __init__(self, endVertex, weight):
+        self.endVertex = endVertex
         self.weight = weight
 
     def __lt__(self, other):
@@ -30,6 +54,9 @@ class Edge:
 
     def __eq__(self, other):
         return self.weight == other.weight
+
+    def __repr__(self):
+        return 'end vertex: ' + str(self.endVertex)
 
 
 class Graph:
@@ -40,46 +67,20 @@ class Graph:
         self.graph = {}
         self.obsVertex = {}
 
-    def addNode(self, key, neighbor=None, weight=None):
+    def addNode(self, key):
         """
         Adds node to graph
 
         Input:
             key: is the key for the new vertex
-            neighbor: is the key for the neighboring vertex of the new vertex
-            weight: is the weighted distance from the
-                new vertex to the neighbor
+
+        Output:
+            returns node to allow for further manipulations
         """
         newVertex = Node(key)
         self.graph[key] = newVertex
-        weightedNeighbor = []
-        # check if neighbor vertex exists
-        if neighbor not in self.graph:
-            self.addNode(neighbor, key, weight)
 
-        if neighbor:
-            edge = Edge(neighbor, weight)
-            heapq.heappush(weightedNeighbor, edge)
-
-        newVertex.neighbors = weightedNeighbor
-
-    def addEdge(self, key, neighbor, weight):
-        """
-        Adds a neighboring edge to existing node to the graph
-
-        Input:
-            key: is the key for the exisiting vertex
-            neighbor: is the key for the neighboring vertex of the vertex
-            weight: is the weighted distance from the
-                vertex to the neighbor
-        """
-        node = self.graph[key]
-        edge = Edge(neighbor, weight)
-        heapq.heappush(node.neighbors, edge)
-
-        neighborVertex = self.graph[neighbor]
-        neighborEdge = Edge(key, weight)
-        heapq.heappush(neighborVertex.neighbors, neighborEdge)
+        return self.graph[key]
 
     def buildGraph(self, graphDF):
         """
@@ -90,25 +91,17 @@ class Graph:
             otherVertex = vertex['v2']
             weight = vertex['cost']
 
-            print(key, otherVertex, weight)
-
             # create new vertex if doesn't exist in graph
             if key not in self.graph:
-                print("here")
-                self.addNode(key, otherVertex, weight)
+                node = self.addNode(key)
+            if otherVertex not in self.graph:
+                otherNode = self.addNode(otherVertex)
 
-            # add neighbors if it doesn't exist in graph
-#            if key in self.graph:
-#                neighbors = self.graph[key].neighbors
-#                # check if neighbors exist
-#                if otherVertex not in neighbors:
-#                    self.addNeighbor(key, otherVertex, weight)
-#
-#            if otherVertex in self.graph:
-#                neighbors = self.graph[otherVertex].neighbors
-#                # check if neighbors exist
-#                if key not in neighbors:
-#                    self.addNeighbor(otherVertex, key, weight)
+            node = self.graph[key]
+            node.addEdge(otherVertex, weight)
+
+            otherNode = self.graph[otherVertex]
+            otherNode.addEdge(key, weight)
 
 
 if __name__ == "__main__":
@@ -125,7 +118,6 @@ if __name__ == "__main__":
     weightedGraph = Graph()
     weightedGraph.buildGraph(dfGraph)
 
-    print("num of nodes and edges: ", numNodesEdges)
-
-    for vertex in weightedGraph.graph:
-        print(vertex)
+    for vertex in weightedGraph.graph.values():
+        print("vertex: ", vertex.key)
+        print(vertex.neighbors)
