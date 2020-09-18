@@ -42,6 +42,55 @@ class Graph:
             heapq.heappush(self.edges, edge)
 
 
+class Cluster:
+    def __init__(self, k, graph):
+        self.k = k
+        self.graph = graph
+        self.clusters = []
+
+    def buildCluster(self):
+        edges = self.graph.edges
+        self.clusters = dict.fromkeys(self.graph.nodes, None)
+        print("clusters before: ", self.clusters)
+        while len(self.clusters) > k:
+            edge = heapq.heappop(edges)
+            v1 = edge.v1
+            v2 = edge.v2
+
+            if v1 not in self.clusters or v2 not in self.clusters:
+                continue
+            if v1 in self.clusters and v2 in self.clusters and \
+                    self.clusters[v1] and self.clusters[v2]:
+                continue
+#            elif v1 not in
+
+            if v1 in self.clusters:
+                if not self.clusters[v1]:
+                    self.clusters[v1] = {v2}
+                else:
+                    self.clusters[v1].add(v2)
+                self.clusters.pop(v2, None)
+
+#            print(self.clusters)
+#            elif v2 in self.clusters:
+#                if not self.clusters[v2]:
+#                    self.clusters[v2] = {v1}
+#                else:
+#                    self.clusters[v2].add(v1)
+#                self.clusters.pop(v1, None)
+#            else:  # need to iterate through clusters
+#                for cluster in self.clusters:
+#                    if v1 in cluster:
+#                        cluster.add(v2)
+#                        break
+#                    elif v2 in cluster:
+#                        cluster.add(v1)
+#                        break
+
+#        print("final: ", self.clusters)
+        return edges[0].cost
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python3 cluster.py <file name>")
@@ -54,4 +103,7 @@ if __name__ == "__main__":
     graph = Graph()
     graph.buildGraph(list_graph)
 
-    print(list_graph[:5])
+    k = 2  # a priori number of clusters
+    clusters = Cluster(k, graph)
+    max_spacing = clusters.buildCluster()
+    print("max spacing: ", max_spacing)
