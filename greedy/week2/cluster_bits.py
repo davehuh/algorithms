@@ -3,7 +3,6 @@ Copyright 2020 Dave Huh
 Clustering of graph with bit format
 """
 
-from difflib import SequenceMatcher
 from functools import total_ordering
 
 import sys
@@ -37,12 +36,15 @@ class Cluster:
     def __init__(self):
         self.minHeap = []
         self.maxHeap = []
+        self.flatList = []
 
     def addNodeToCluster(self, node):
         heapq.heappush(self.minHeap, node)  # add to min heap
 
         node.key = -node.key
         heapq.heappush(self.maxHeap, node)  # add to max heap
+
+        self.flatList.append(node.value)
 
 
 def computeDistanceBetweenNodes(seq1, seq2):
@@ -56,11 +58,8 @@ def computeDistanceBetweenNodes(seq1, seq2):
     Output:
         distance: Hammer distance between two bit sequences
     """
-    length = len(seq1)
-    matcher = SequenceMatcher(None, seq1, seq2)
-    similarityRatio = matcher.ratio()
-    distance = similarityRatio * length
-
+    diff = seq1 - seq2
+    distance = np.count_nonzero(diff)
     return distance
 
 
@@ -70,6 +69,7 @@ class Clustering:
         self.clusters = []
 
     def computeNumClusters(self):
+        threshold = 2
         for row in self.graph:
             # create node
             key = row.sum()
@@ -82,14 +82,17 @@ class Clustering:
                 min_node = cluster.minHeap[0]
                 max_node = cluster.maxHeap[0]
 
-                if key >= min_node.key - 2 or key <= max_node.key - 2:
-                    for nodeMember in cluster.minHeap:
-                        distance = computeDistanceBetweenNodes(
-                            nodeMember.value, value)
-                        if distance < 3:
-                            cluster.addNodeToCluster(node)
-                            appendNewCluster = False
-                            break
+                if key >= min_node.key - threshold and key <= -max_node.key + \
+                        threshold:
+
+                    nodesInCluster = np.array(cluster.flatList)
+                    diff = nodesInCluster - value
+                    distances = np.count_nonzero(diff, axis=1)
+
+                    if np.any(distances < 3):
+                        cluster.addNodeToCluster(node)
+                        appendNewCluster = False
+                        break
 
             if len(self.clusters) < 1 or appendNewCluster:
                 cluster = Cluster()
@@ -115,4 +118,4 @@ if __name__ == "__main__":
     clustering = Clustering(graphList)
     numK = clustering.computeNumClusters()
 
-    print(numK)
+    print("K: ", numK)
