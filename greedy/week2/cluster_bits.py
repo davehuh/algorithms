@@ -3,14 +3,100 @@ Copyright 2020 Dave Huh
 Clustering of graph with bit format
 """
 
-import sys
-import numpy as np
 from difflib import SequenceMatcher
+from functools import total_ordering
 
-"""
-Split condition: cluster need at least spacing of 3
-nodes with only 2 bits or less in common are in different clusters
-"""
+import sys
+import heapq
+
+import numpy as np
+
+
+@total_ordering
+class Node:
+    """
+    Node in a graph.
+    Node is represented in bits
+    """
+    def __init__(self, key, value):
+        """
+        key is sum of bits in value
+        value is list of bits representing the node
+        """
+        self.key = key
+        self.value = value
+
+    def __lt__(self, other):
+        return self.key < other.key
+
+    def __eq__(self, other):
+        return self.key == other.key
+
+
+class Cluster:
+    def __init__(self):
+        self.minHeap = []
+        self.maxHeap = []
+
+    def addNodeToCluster(self, node):
+        heapq.heappush(self.minHeap, node)  # add to min heap
+
+        node.key = -node.key
+        heapq.heappush(self.maxHeap, node)  # add to max heap
+
+
+def computeDistanceBetweenNodes(seq1, seq2):
+    """
+    Computes Hammer distance between two sequences of bits
+
+    Input:
+        seq1: first sequence
+        seq2: second sequence to be compared to the first sequence
+
+    Output:
+        distance: Hammer distance between two bit sequences
+    """
+    length = len(seq1)
+    matcher = SequenceMatcher(None, seq1, seq2)
+    similarityRatio = matcher.ratio()
+    distance = similarityRatio * length
+
+    return distance
+
+
+class Clustering:
+    def __init__(self, graph):
+        self.graph = graph
+        self.clusters = []
+
+    def computeNumClusters(self):
+        for row in self.graph:
+            # create node
+            key = row.sum()
+            value = row
+            node = Node(key, value)
+
+            # iterate through clusters
+            appendNewCluster = True
+            for cluster in self.clusters:
+                min_node = cluster.minHeap[0]
+                max_node = cluster.maxHeap[0]
+
+                if key >= min_node.key - 2 or key <= max_node.key - 2:
+                    for nodeMember in cluster.minHeap:
+                        distance = computeDistanceBetweenNodes(
+                            nodeMember.value, value)
+                        if distance < 3:
+                            cluster.addNodeToCluster(node)
+                            appendNewCluster = False
+                            break
+
+            if len(self.clusters) < 1 or appendNewCluster:
+                cluster = Cluster()
+                cluster.addNodeToCluster(node)
+                self.clusters.append(cluster)
+
+        return len(self.clusters)
 
 
 if __name__ == "__main__":
@@ -23,9 +109,10 @@ if __name__ == "__main__":
     header = textFile.pop(0)
     numNodes, bitsLength = header.split(" ")
 
-    graph = [list(map(int, bit.strip().split(" "))) for bit in textFile]
-    graph = np.array(graph)
+    graphList = [list(map(int, bit.strip().split(" "))) for bit in textFile]
+    graphList = np.array(graphList)
 
-    print(numNodes, bitsLength)
-    print(graph)
-    print(graph.shape)
+    clustering = Clustering(graphList)
+    numK = clustering.computeNumClusters()
+
+    print(numK)
