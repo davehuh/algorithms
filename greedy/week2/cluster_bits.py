@@ -4,7 +4,8 @@ Clustering of graph with bit format
 """
 
 from functools import total_ordering
-from itertools import combinations
+from itertools import combinations, combinations_with_replacement, \
+    permutations
 
 import sys
 import heapq
@@ -34,7 +35,99 @@ class Node:
 
 
 def generateCombinationsByHammingDist(bitvalues, distance):
-    return combinations(bitvalues, len(bitvalues) - distance)
+    """
+    Generate combinations of a list of bits
+    Input:
+        bitvalues: list of bits with length n
+        distance: hamming distance. r = len(bitvalues) - distance
+    """
+    print("NODE: ", bitvalues)
+    print("DISTANCE: ", distance)
+    combo = list(combinations(enumerate(bitvalues), len(bitvalues) - distance))
+    comboInd = []
+    for node in combo:
+        bitIndices = []
+        for ind_bit_pair in node:
+            ind = ind_bit_pair[0]
+            bitIndices.append(ind)
+        comboInd.append(bitIndices)
+
+    print("num combos ref: ", len(comboInd))
+
+    finalCombos = set()
+    for nodeIndex in range(len(comboInd)):
+        prevInd = -1
+        indToManipulate = []
+        for ind in comboInd[nodeIndex]:
+            if prevInd + 1 != ind:
+                for i in range(prevInd + 1, ind):
+                    indToManipulate.append(i)
+
+            prevInd = ind
+
+            if len(indToManipulate) == distance:
+                break
+
+        assembledNode = list(bitvalues)  # list of a node str
+        if indToManipulate:
+            for i in indToManipulate:
+                a_bit = assembledNode[i]
+                if a_bit == '0':
+                    assembledNode[i] = '1'
+                else:
+                    assembledNode[i] = '0'
+
+        assembledNode = ''.join(assembledNode)
+        finalCombos.add(assembledNode)
+
+    print("num combinations: ", len(finalCombos))
+    print("combinations: ", finalCombos)
+
+    return finalCombos
+
+#    combo = [ind_bit_tuple[0] for ind_bit_tuple
+#             in combinations(enumerate(bitvalues),
+#                             len(bitvalues) - distance)]
+#    combo = [''.join(nodeBits) for nodeBits in combo]
+#    print("combination: ", combo)
+
+#    return combo
+#    combo = combinations(bitvalues, len(bitvalues) - distance)
+#    combo = [''.join(nodeBits) for nodeBits in combo]
+#
+#    bits = '01'
+#    bitCombos = set()
+#    bitCombos_part1 = combinations_with_replacement(bits, distance)
+#    bitCombos_part2 = permutations(bits, distance)
+#    bitCombos.update(bitCombos_part1)
+#    bitCombos.update(bitCombos_part2)
+#    bitCombos = [''.join(bitChain) for bitChain in bitCombos]
+#    print("NODE: ", bitvalues)
+#    print("DISTANCE: ", distance)
+##    print("node combinations: ", list(combo))
+#    print("bit combinations: ", list(bitCombos))
+#
+#    comboSet = set()
+#    for nodeFragment in combo:
+#        print("node fragment: ", nodeFragment)
+#        for bitFragment in bitCombos:
+##            print("bit fragment: ", bitFragment)
+#            nodeTest = nodeFragment + bitFragment
+#            hDist = computeDistanceBetweenNodes(bitvalues, nodeTest)
+#            if hDist <= distance:
+##                print("joined node: ", nodeTest)
+##                print("calculated distance: ", hDist)
+#                comboSet.add(nodeTest)
+#            nodeTest = bitFragment + nodeFragment
+#            hDist = computeDistanceBetweenNodes(bitvalues, nodeTest)
+#            if hDist <= distance:
+##                print("joined node: ", nodeTest)
+##                print("calculated distance: ", hDist)
+#                comboSet.add(nodeTest)
+#
+#    print("num combinations: ", len(comboSet))
+#
+#    return comboSet
 
 
 def computeDistanceBetweenNodes(seq1, seq2):
@@ -48,6 +141,15 @@ def computeDistanceBetweenNodes(seq1, seq2):
     Output:
         distance: Hammer distance between two bit sequences
     """
+    if isinstance(seq1, str):
+        seq1 = list(seq1)
+        seq1 = [int(digit) for digit in seq1]
+        seq1 = np.array(seq1)
+    if isinstance(seq2, str):
+        seq2 = list(seq2)
+        seq2 = [int(digit) for digit in seq2]
+        seq2 = np.array(seq2)
+
     diff = seq1 - seq2
     distance = np.count_nonzero(diff)
     return distance
@@ -89,11 +191,8 @@ class Clustering:
             reference = []
             for dist in hammingDistances:
                 newRefs = generateCombinationsByHammingDist(row, dist)
-                newRefs = [''.join(values) for values in newRefs]
 
                 reference.append(newRefs)
-
-            reference = set(reference)
 
 #            reference = set()
 #            for dist in hammingDistances:
@@ -114,7 +213,7 @@ class Clustering:
         # build hash map of nodes that fall within max hamming dist
         self.buildRefTable()
 
-        print("Ref hash map: \n", self.references)
+#        print("Ref hash map: \n", self.references)
 
         for vertex in self.graph:
             vertexRefs = self.references[vertex]
@@ -136,6 +235,7 @@ class Clustering:
                 self.clusters.append(vertexCluster)
 
         return len(self.clusters)
+
 #        nodeCount = 0
 #        for row in self.graph:
 #            nodeCount += 1
