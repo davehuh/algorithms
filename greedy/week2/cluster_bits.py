@@ -2,39 +2,13 @@
 Copyright 2020 Dave Huh
 Clustering of graph with bit format
 """
-import faulthandler; faulthandler.enable()
-
-from functools import total_ordering
-from itertools import combinations, combinations_with_replacement, \
-    permutations
+from itertools import combinations
 
 import sys
-import heapq
-
+import faulthandler
 import numpy as np
 
-sys.setrecursionlimit(1500)
-
-
-@total_ordering
-class Node:
-    """
-    Node in a graph.
-    Node is represented in bits
-    """
-    def __init__(self, key, value):
-        """
-        key is sum of bits in value
-        value is list of bits representing the node
-        """
-        self.key = key
-        self.value = value
-
-    def __lt__(self, other):
-        return self.key < other.key
-
-    def __eq__(self, other):
-        return self.key == other.key
+faulthandler.enable()
 
 
 def generateCombinationsByHammingDist(bitvalues, distance):
@@ -44,8 +18,6 @@ def generateCombinationsByHammingDist(bitvalues, distance):
         bitvalues: list of bits with length n
         distance: hamming distance. r = len(bitvalues) - distance
     """
-#    print("NODE: ", bitvalues)
-#    print("DISTANCE: ", distance)
     combo = list(combinations(enumerate(bitvalues), distance))
     comboInd = []
     for node in combo:
@@ -55,15 +27,11 @@ def generateCombinationsByHammingDist(bitvalues, distance):
             bitIndices.append(ind)
         comboInd.append(bitIndices)
 
-#    print("num combos ref: ", len(comboInd))
-#    print("combos ref: ", comboInd)
-
     finalCombos = set()
 
     for nodeIndices in comboInd:
         if nodeIndices:
             manipulatedVertex = list(bitvalues)
-#            print("mani vertex before: ", ''.join(manipulatedVertex))
             for nodeIndex in nodeIndices:
                 index = int(nodeIndex)
                 if manipulatedVertex[index] == '0':
@@ -72,11 +40,7 @@ def generateCombinationsByHammingDist(bitvalues, distance):
                     manipulatedVertex[index] = '0'
 
             manipulatedVertex = "".join(manipulatedVertex)
-#            print("mani vertex after:  ", manipulatedVertex)
             finalCombos.add(manipulatedVertex)
-
-#    print("num combinations for dist: ", len(finalCombos))
-#    print("combinations: ", finalCombos)
 
     return finalCombos
 
@@ -135,28 +99,6 @@ def computeDistanceBetweenNodes(seq1, seq2):
     return distance
 
 
-class Cluster:
-    def __init__(self):
-        self.minHeap = []
-        self.maxHeap = []
-        self.flatList = []
-
-    def addNodeToCluster(self, node):
-        heapq.heappush(self.minHeap, node)  # add to min heap
-
-        node.key = -node.key
-        heapq.heappush(self.maxHeap, node)  # add to max heap
-
-        self.flatList.append(node.value)
-
-    def addNodeBitsToCluster(self, values):
-        if len(self.flatList) == 0:
-            self.flatList.append(values)
-            self.flatList = np.array(self.flatList)
-            return
-        np.append(self.flatList, [values])
-
-
 class Clustering:
     def __init__(self, graph, maxHammingDist):
         self.graph = set(graph)  # graph in list
@@ -168,73 +110,49 @@ class Clustering:
     def buildRefTable(self):
         for row in self.graph:
             key = row
-#            print("key: ", key)
             hammingDistances = list(range(self.maxHammingDist + 1))
             reference = set()
-#            reference = []
             for dist in hammingDistances:
                 newRefs = generateCombinationsByHammingDist(row, dist)
-#                print("new combos: ", newRefs)
-#                print("new ref length: ", len(newRefs))
-#                print("intermediaries length before: ", len(reference))
 
                 reference.update(newRefs)
-#                reference.append(newRefs)
 
-#                print("intermediaries length after: ", len(reference))
-
-#            print("ref final len: ", len(reference))
             self.references[key] = reference
 
-    def findAllNeighbors(self, node):
-        newCluster = set(node)
-        refs = self.references[node]
-        for ref in refs:
-            if ref not in self.observedNodes and ref in self.graph:
-                self.observedNodes.add(ref)
-                newCluster.add(ref)
-                refCluster = self.findAllNeighbors(ref)
-                newCluster.update(refCluster)
+    def findAllNeighbors(self, node, cluster=set()):
+        if node in self.observedNodes:
+            return cluster
 
-        self.observedNodes.add(node)
-        return newCluster
+        stack = []
+        stack.append(node)
+
+        while len(stack) > 0:
+            currNode = stack.pop()
+
+            self.observedNodes.add(currNode)
+            refs = self.references[currNode]
+
+            for ref in refs:
+                if ref not in self.observedNodes and ref in self.graph:
+                    cluster.add(ref)
+                    stack.append(ref)
+
+        return cluster
 
     def computeNumClusters(self):
-        # build hash map of nodes that fall within max hamming dist
-        self.buildRefTable()
-
-        print("graph length: ", len(self.graph))
-
-        vertexProgressCounter = 0
         for vertex in self.graph:
-            vertexProgressCounter += 1
-#            print("progress: ", vertexProgressCounter)
-
             if vertex in self.observedNodes:
                 continue
 
             newCluster = self.findAllNeighbors(vertex)
-#            newCluster = set(vertex)
-#            refs = self.references[vertex]
-#            for ref in refs:
-#                if ref in self.observedNodes:
-#                    break
-#                if ref in self.graph:
-#                    newCluster.add(ref)
 
             self.clusters.append(newCluster)
             self.observedNodes.update(newCluster)
-
-        print("observedNodes: ", len(self.observedNodes))
 
         return len(self.clusters)
 
 
 if __name__ == "__main__":
-#    if len(sys.argv) != 2:
-#        print("Usage: python3 cluster_bits.py <file name>")
-#        sys.exit(1)
-
     textFile = open(sys.argv[1])
     textFile = textFile.read().splitlines()
     header = textFile.pop(0)
@@ -246,7 +164,8 @@ if __name__ == "__main__":
     hammingDist = 2
 
     clustering = Clustering(graphList, hammingDist)
+    clustering.buildRefTable()
+
     numK = clustering.computeNumClusters()
 
     print("K: ", numK)
-#    print("main, clusters: ", clustering.clusters)
