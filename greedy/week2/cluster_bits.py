@@ -2,6 +2,7 @@
 Copyright 2020 Dave Huh
 Clustering of graph with bit format
 """
+import faulthandler; faulthandler.enable()
 
 from functools import total_ordering
 from itertools import combinations, combinations_with_replacement, \
@@ -11,6 +12,8 @@ import sys
 import heapq
 
 import numpy as np
+
+sys.setrecursionlimit(1500)
 
 
 @total_ordering
@@ -41,9 +44,9 @@ def generateCombinationsByHammingDist(bitvalues, distance):
         bitvalues: list of bits with length n
         distance: hamming distance. r = len(bitvalues) - distance
     """
-    print("NODE: ", bitvalues)
-    print("DISTANCE: ", distance)
-    combo = list(combinations(enumerate(bitvalues), len(bitvalues) - distance))
+#    print("NODE: ", bitvalues)
+#    print("DISTANCE: ", distance)
+    combo = list(combinations(enumerate(bitvalues), distance))
     comboInd = []
     for node in combo:
         bitIndices = []
@@ -52,82 +55,59 @@ def generateCombinationsByHammingDist(bitvalues, distance):
             bitIndices.append(ind)
         comboInd.append(bitIndices)
 
-    print("num combos ref: ", len(comboInd))
+#    print("num combos ref: ", len(comboInd))
+#    print("combos ref: ", comboInd)
 
     finalCombos = set()
-    for nodeIndex in range(len(comboInd)):
-        prevInd = -1
-        indToManipulate = []
-        for ind in comboInd[nodeIndex]:
-            if prevInd + 1 != ind:
-                for i in range(prevInd + 1, ind):
-                    indToManipulate.append(i)
 
-            prevInd = ind
-
-            if len(indToManipulate) == distance:
-                break
-
-        assembledNode = list(bitvalues)  # list of a node str
-        if indToManipulate:
-            for i in indToManipulate:
-                a_bit = assembledNode[i]
-                if a_bit == '0':
-                    assembledNode[i] = '1'
+    for nodeIndices in comboInd:
+        if nodeIndices:
+            manipulatedVertex = list(bitvalues)
+#            print("mani vertex before: ", ''.join(manipulatedVertex))
+            for nodeIndex in nodeIndices:
+                index = int(nodeIndex)
+                if manipulatedVertex[index] == '0':
+                    manipulatedVertex[index] = '1'
                 else:
-                    assembledNode[i] = '0'
+                    manipulatedVertex[index] = '0'
 
-        assembledNode = ''.join(assembledNode)
-        finalCombos.add(assembledNode)
+            manipulatedVertex = "".join(manipulatedVertex)
+#            print("mani vertex after:  ", manipulatedVertex)
+            finalCombos.add(manipulatedVertex)
 
-    print("num combinations: ", len(finalCombos))
-    print("combinations: ", finalCombos)
+#    print("num combinations for dist: ", len(finalCombos))
+#    print("combinations: ", finalCombos)
 
     return finalCombos
 
-#    combo = [ind_bit_tuple[0] for ind_bit_tuple
-#             in combinations(enumerate(bitvalues),
-#                             len(bitvalues) - distance)]
-#    combo = [''.join(nodeBits) for nodeBits in combo]
-#    print("combination: ", combo)
-
-#    return combo
-#    combo = combinations(bitvalues, len(bitvalues) - distance)
-#    combo = [''.join(nodeBits) for nodeBits in combo]
+#    for nodeIndex in range(len(comboInd)):
+#        prevInd = -1
+#        indToManipulate = []
+#        for ind in comboInd[nodeIndex]:
+#            if prevInd + 1 != ind:
+#                for i in range(prevInd + 1, ind):
+#                    indToManipulate.append(i)
 #
-#    bits = '01'
-#    bitCombos = set()
-#    bitCombos_part1 = combinations_with_replacement(bits, distance)
-#    bitCombos_part2 = permutations(bits, distance)
-#    bitCombos.update(bitCombos_part1)
-#    bitCombos.update(bitCombos_part2)
-#    bitCombos = [''.join(bitChain) for bitChain in bitCombos]
-#    print("NODE: ", bitvalues)
-#    print("DISTANCE: ", distance)
-##    print("node combinations: ", list(combo))
-#    print("bit combinations: ", list(bitCombos))
+#            prevInd = ind
 #
-#    comboSet = set()
-#    for nodeFragment in combo:
-#        print("node fragment: ", nodeFragment)
-#        for bitFragment in bitCombos:
-##            print("bit fragment: ", bitFragment)
-#            nodeTest = nodeFragment + bitFragment
-#            hDist = computeDistanceBetweenNodes(bitvalues, nodeTest)
-#            if hDist <= distance:
-##                print("joined node: ", nodeTest)
-##                print("calculated distance: ", hDist)
-#                comboSet.add(nodeTest)
-#            nodeTest = bitFragment + nodeFragment
-#            hDist = computeDistanceBetweenNodes(bitvalues, nodeTest)
-#            if hDist <= distance:
-##                print("joined node: ", nodeTest)
-##                print("calculated distance: ", hDist)
-#                comboSet.add(nodeTest)
+#            if len(indToManipulate) == distance:
+#                break
 #
-#    print("num combinations: ", len(comboSet))
+#        assembledNode = list(bitvalues)  # list of a node str
+#        if indToManipulate:
+#            for i in indToManipulate:
+#                a_bit = assembledNode[i]
+#                if a_bit == '0':
+#                    assembledNode[i] = '1'
+#                else:
+#                    assembledNode[i] = '0'
 #
-#    return comboSet
+#        assembledNode = ''.join(assembledNode)
+#
+#        checkDist = computeDistanceBetweenNodes(bitvalues, assembledNode)
+#
+#        if checkDist == distance:
+#            finalCombos.add(assembledNode)
 
 
 def computeDistanceBetweenNodes(seq1, seq2):
@@ -183,137 +163,85 @@ class Clustering:
         self.clusters = []  # list of clusters
         self.references = {}  # hashmap of nodes with specified hamming dist
         self.maxHammingDist = maxHammingDist  # maximum hamming distance
+        self.observedNodes = set()
 
     def buildRefTable(self):
         for row in self.graph:
             key = row
+#            print("key: ", key)
             hammingDistances = list(range(self.maxHammingDist + 1))
-            reference = []
+            reference = set()
+#            reference = []
             for dist in hammingDistances:
                 newRefs = generateCombinationsByHammingDist(row, dist)
+#                print("new combos: ", newRefs)
+#                print("new ref length: ", len(newRefs))
+#                print("intermediaries length before: ", len(reference))
 
-                reference.append(newRefs)
+                reference.update(newRefs)
+#                reference.append(newRefs)
 
-#            reference = set()
-#            for dist in hammingDistances:
-#                newRefs = generateCombinationsByHammingDist(row, dist)
-#                print("from combo: ", len(list(newRefs)))
-#
-#                newList = []
-#                for values in newRefs:
-#                    values = ''.join(values)
-#                    if len(values) == len(row):
-#                        newList.append(values)
-#
-#                reference.update(newList)
+#                print("intermediaries length after: ", len(reference))
 
+#            print("ref final len: ", len(reference))
             self.references[key] = reference
+
+    def findAllNeighbors(self, node):
+        newCluster = set(node)
+        refs = self.references[node]
+        for ref in refs:
+            if ref not in self.observedNodes and ref in self.graph:
+                self.observedNodes.add(ref)
+                newCluster.add(ref)
+                refCluster = self.findAllNeighbors(ref)
+                newCluster.update(refCluster)
+
+        self.observedNodes.add(node)
+        return newCluster
 
     def computeNumClusters(self):
         # build hash map of nodes that fall within max hamming dist
         self.buildRefTable()
 
-#        print("Ref hash map: \n", self.references)
+        print("graph length: ", len(self.graph))
 
+        vertexProgressCounter = 0
         for vertex in self.graph:
-            vertexRefs = self.references[vertex]
-            vertexCluster = set(vertex)
-            addNewCluster = True
-            for ref in vertexRefs:
-                if ref in self.graph:
-                    vertexCluster.add(ref)
+            vertexProgressCounter += 1
+#            print("progress: ", vertexProgressCounter)
 
-            if len(self.clusters) > 0:
-                for cluster in self.clusters:
-                    if vertex in cluster:
-                        # update cluster
-                        cluster.update(vertexCluster)
-                        addNewCluster = False
-                        break
+            if vertex in self.observedNodes:
+                continue
 
-            if len(self.clusters) == 0 or addNewCluster:
-                self.clusters.append(vertexCluster)
+            newCluster = self.findAllNeighbors(vertex)
+#            newCluster = set(vertex)
+#            refs = self.references[vertex]
+#            for ref in refs:
+#                if ref in self.observedNodes:
+#                    break
+#                if ref in self.graph:
+#                    newCluster.add(ref)
+
+            self.clusters.append(newCluster)
+            self.observedNodes.update(newCluster)
+
+        print("observedNodes: ", len(self.observedNodes))
 
         return len(self.clusters)
 
-#        nodeCount = 0
-#        for row in self.graph:
-#            nodeCount += 1
-#            print("node: ", nodeCount)
-#            value = row
-
-#            addNewCluster = True
-#
-#            for cluster in self.clusters:
-#                # Hammer distances
-#                diff = cluster.flatList - value
-#                distances = np.count_nonzero(diff, axis=1)
-#                distances = set(distances)
-#
-#                if 3 in distances or 2 in distances or 1 in distances:
-#                    cluster.addNodeBitsToCluster(value)
-#                    addNewCluster = False
-#                    break
-#
-#            if len(self.clusters) == 0 or addNewCluster:
-#                cluster = Cluster()
-#                cluster.addNodeBitsToCluster(value)
-#                self.clusters.append(cluster)
-#
-#        return len(self.clusters)
-
-#        threshold = 2
-#        nodeCount = 0
-#        k = 0
-#        for row in self.graph:
-#            nodeCount += 1
-#            print(nodeCount)
-#            # create node
-#            key = row.sum()
-#            value = row
-#            node = Node(key, value)
-
-#            # iterate through clusters
-#            appendNewCluster = True
-#            for cluster in self.clusters:
-#                min_node = cluster.minHeap[0]
-#                max_node = cluster.maxHeap[0]
-#
-#                if key >= min_node.key - threshold and key <= -max_node.key + \
-#                        threshold:
-#
-#                    nodesInCluster = np.array(cluster.flatList)
-#                    diff = nodesInCluster - value
-#                    distances = np.count_nonzero(diff, axis=1)
-#
-#                    if np.any(distances < 3):
-#                        cluster.addNodeToCluster(node)
-#                        appendNewCluster = False
-#                        break
-#
-#            if len(self.clusters) < 1 or appendNewCluster:
-#                cluster = Cluster()
-#                cluster.addNodeToCluster(node)
-#                self.clusters.append(cluster)
-
-#        return len(self.clusters)
-
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python3 cluster_bits.py <file name>")
-        sys.exit(1)
+#    if len(sys.argv) != 2:
+#        print("Usage: python3 cluster_bits.py <file name>")
+#        sys.exit(1)
 
     textFile = open(sys.argv[1])
     textFile = textFile.read().splitlines()
     header = textFile.pop(0)
     numNodes, bitsLength = header.split(" ")
 
+    print("header: ", header)
     graphList = [''.join(row.split(' ')) for row in textFile]
-#    graphList = [row.strip(" ") for row in textFile]
-#    graphList = [list(map(int, bit.strip().split(" "))) for bit in textFile]
-#    graphList = np.array(graphList)
-    print(graphList)
 
     hammingDist = 2
 
@@ -321,4 +249,4 @@ if __name__ == "__main__":
     numK = clustering.computeNumClusters()
 
     print("K: ", numK)
-    print(clustering.clusters)
+#    print("main, clusters: ", clustering.clusters)
