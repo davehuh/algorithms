@@ -33,22 +33,158 @@ class HuffmanCodes:
         self.tree = Node()
 
     def mergeNodes(self):
-        self.queue_merged = deque(self.nodes)
+        """
+        Invariant: nodes must be sorted
+        """
+        nodes = deque(self.nodes)
 
-        print("before: ", self.queue_merged)
+        print("nodes: ", nodes)
 
-        while len(self.queue_merged) > 2:
-            smallestNode = self.queue_merged.pop()
+        while len(nodes) > 2:
+            # nodes can come from nodes or merged nodes queue
+            # determine which two nodes to merge
+
+            # determine smallest node
+            nodeFromNodes = nodes[-1]
+
+            nodeFromMerged = None
+
+            if self.queue_merged:
+                nodeFromMerged = self.queue_merged[-1]
+
+            smallestNode = None
+            if not nodeFromMerged or nodeFromNodes < nodeFromMerged:
+                smallestNode = nodes.pop()
+            else:
+                smallestNode = self.queue_merged.pop()
+
             self.queue_reconstructSteps.append(smallestNode)
 
-            smallerNode = self.queue_merged.pop()
+            # determine smaller node
+            nodesFromNodesSmaller = None
+            if nodes:
+                nodeFromNodesSmaller = nodes[-1]
+
+            nodeFromMergedSmaller = None
+
+            if self.queue_merged:
+                nodeFromMergedSmaller = self.queue_merged[-1]
+
+            smallerNode = None
+            if nodesFromNodesSmaller and nodeFromNodesSmaller < \
+                    nodeFromMergedSmaller:
+                smallerNode = nodes.pop()
+            elif self.queue_merged:
+                smallerNode = self.queue_merged.pop()
+
             self.queue_reconstructSteps.append(smallerNode)
 
             mergedNodes = smallestNode + smallerNode
-            self.queue_merged.append(mergedNodes)
 
-        print("after: ", self.queue_merged)
-        print("mergedNodes: ", self.queue_reconstructSteps)
+            self.queue_reconstructSteps.append(mergedNodes)
+
+            # determine where mergedNodes should belong
+            if nodes and nodes[-1] >= mergedNodes:
+                nodes.append(mergedNodes)
+            else:
+                self.queue_merged.append(mergedNodes)
+
+        while self.queue_merged:
+            nodeFromMergedQueue = self.queue_merged.pop()
+
+            nodeFromNodes = None
+            if nodes:
+                nodeFromNodes = nodes.pop()
+
+            smallestNode = None
+            if nodeFromNodes and nodeFromNodes < nodeFromMergedQueue:
+                smallestNode = nodeFromNodes
+            else:
+                smallestNode = nodeFromMergedQueue
+
+            self.queue_reconstructSteps.append(smallestNode)
+
+            smallerNode = None
+            nodeFromNodesSmaller = None
+            if nodes:
+                nodeFromNodesSmaller = nodes.pop()
+
+            nodeFromMergedSmaller = None
+            if self.queue_merged:
+                nodeFromNodesSmaller = self.queue_merged.pop()
+
+            if nodeFromNodesSmaller and nodeFromMergedSmaller:
+                if nodeFromMergedSmaller <= nodeFromNodesSmaller:
+                    smallerNode = nodeFromMergedSmaller
+                else:
+                    smallerNode = nodeFromNodesSmaller
+            elif nodeFromNodesSmaller:
+                smallerNode = nodeFromNodesSmaller
+            else:
+                smallerNode = nodeFromMergedSmaller
+
+            self.queue_reconstructSteps.append(smallerNode)
+
+            mergedNodes = smallestNode + smallerNode
+
+            self.queue_reconstructSteps.append(mergedNodes)
+
+            nodes.append(mergedNodes)
+
+        print("nodes after: ", nodes)
+        print("reconstruction steps: ", self.queue_reconstructSteps)
+
+#        self.queue_merged = deque(self.nodes)
+#
+#        print("before: ", self.queue_merged)
+#
+#        tmp_queue = deque()
+#
+#        """
+#        Invariant 1:
+#            self.queue_merged must maintain sorted order
+#        """
+#        while len(self.queue_merged) > 2:
+#            smallestNode = None
+#            if not tmp_queue:
+#                smallestNode = self.queue_merged.pop()
+#            else:
+#                fromTmpNode = tmp_queue[-1]
+#                fromQueue = self.queue_merged[-1]
+#                if fromTmpNode <= fromQueue:
+#                    smallestNode = tmp_queue.pop()
+#                else:
+#                    smallestNode = self.queue_merged.pop()
+#
+#            print("node1 merge: ", smallestNode)
+#            self.queue_reconstructSteps.append(smallestNode)
+#
+#            smallerNode = None
+#
+#            if not tmp_queue:
+#                smallerNode = self.queue_merged.pop()
+#            else:
+#                fromTmpNode = tmp_queue[-1]
+#                fromQueue = self.queue_merged[-1]
+#                if fromTmpNode <= fromQueue:
+#                    smallerNode = tmp_queue.pop()
+#                else:
+#                    smallerNode = self.queue_merged.pop()
+#
+#            print("node2 merge: ", smallerNode)
+#            self.queue_reconstructSteps.append(smallerNode)
+#
+#            mergedNodes = smallestNode + smallerNode
+#
+#            # Check if mergedNodes is smaller than next in queue
+#            if not self.queue_merged or mergedNodes <= self.queue_merged[-1]:
+#                self.queue_merged.append(mergedNodes)
+#            else:
+#                tmp_queue.append(mergedNodes)
+#
+#        print("after: ", self.queue_merged)
+#        print("mergedNodes: ", self.queue_reconstructSteps)
+#        print("tmp_queue: ", tmp_queue)
 
     def constructTree(self):
         """
@@ -113,5 +249,5 @@ vertices.sort(reverse=True)
 
 huffman = HuffmanCodes(vertices)
 huffman.mergeNodes()
-huffman.constructTree()
-print("max length: ", huffman.findMaximumLength())
+# huffman.constructTree()
+# print("max length: ", huffman.findMaximumLength())
