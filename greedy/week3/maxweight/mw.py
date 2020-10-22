@@ -4,6 +4,8 @@ Computes maximum-weight independent set of a path graph
 """
 
 import sys
+import numpy as np
+
 
 class Node:
     def __init__(self, val, weight):
@@ -21,7 +23,10 @@ class Graph:
             newNode = Node(i, weight)
             self.nodes.append(newNode)
             i += 1
-            print(newNode.val, newNode.weight)
+
+    def computeMWIS(self):
+        set1 = self.nodes[0::2]
+        set2 = self.nodes[1::2]
 
 
 if __name__ == "__main__":
