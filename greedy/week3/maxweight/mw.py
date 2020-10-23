@@ -34,7 +34,7 @@ class Graph:
     """
     def __init__(self):
         self.nodes = []
-        self.lookup = {}  # memoization of subset solutions
+        self.lookupWeights = {}  # memoization of subset solutions
         self.lookupNodes = {}  # reconstruction of nodes
 
     def build_nodes(self, vertices):
@@ -52,18 +52,27 @@ class Graph:
         """
         Populate lookup list for MWIS calculations
         """
-        self.lookup[0] = 0
-        self.lookup[1] = self.nodes[0].weight
+        self.lookupWeights[0] = 0
+        self.lookupWeights[1] = self.nodes[0].weight
 
-        self.lookupNodes[0] = [self.nodes[0]]
-        self.lookupNodes[1] = [self.nodes[1]]
+        self.lookupNodes[0] = []
+        self.lookupNodes[1] = [self.nodes[0]]
 
         i = 2
 
-        while i < len(self.nodes):
+        while i < len(self.nodes) + 1:
             node = self.nodes[i - 1]  # current node
-            self.lookup[i] = max(self.lookup[i-1],
-                                 self.lookup[i-2] + node.weight)
+
+            if self.lookupWeights[i - 1] > self.lookupWeights[i - 2] + \
+                    node.weight:
+                self.lookupWeights[i] = self.lookupWeights[i - 1]
+                self.lookupNodes[i] = self.lookupNodes[i - 1]
+            else:
+                self.lookupWeights[i] = self.lookupWeights[i - 2] + \
+                    node.weight
+                self.lookupNodes[i] = self.lookupNodes[i - 2] + \
+                    [node]
+
             i += 1
 
 
@@ -72,11 +81,11 @@ class Graph:
         Computes maximum-weight independent set
         returns maximum weight and M-W set
         """
-        set1 = np.array(self.nodes[0::2])
-        set2 = np.array(self.nodes[1::2])
+        set1 = self.lookupNodes[len(self.nodes)]
+        set2 = self.lookupNodes[len(self.nodes) - 1]
 
-        sumSet1 = set1.sum()
-        sumSet2 = set2.sum()
+        sumSet1 = self.lookupWeights[len(self.nodes)]
+        sumSet2 = self.lookupWeights[len(self.nodes) - 1]
 
         if sumSet1 > sumSet2:
             return set1, sumSet1
@@ -114,3 +123,6 @@ if __name__ == "__main__":
 
     print("weight: ", maxWeight)
     print("bits: ", bits)
+
+#    print("lookup weights: ", graph.lookupWeights)
+#    print("lookup nodes: ", vals)
