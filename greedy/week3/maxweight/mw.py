@@ -8,6 +8,9 @@ import numpy as np
 
 
 class Node:
+    """
+    Node of a graph
+    """
     def __init__(self, val, weight):
         self.val = val
         self.weight = weight
@@ -18,15 +21,26 @@ class Node:
     def __radd__(self, other):
         return other + self.weight
 
-    def getVal(self):
+    def get_val(self):
+        """
+        Utility function to return value of node (key)
+        """
         return self.val
 
 
 class Graph:
+    """
+    Graph to solve maximum weight independent set
+    """
     def __init__(self):
         self.nodes = []
+        self.lookup = {}  # memoization of subset solutions
+        self.lookupNodes = {}  # reconstruction of nodes
 
-    def buildNodes(self, vertices):
+    def build_nodes(self, vertices):
+        """
+        Creates nodes and inserts into graph obj
+        """
         i = 1
 
         for weight in vertices:
@@ -34,7 +48,26 @@ class Graph:
             self.nodes.append(newNode)
             i += 1
 
-    def computeMWIS(self):
+    def populate_lookup(self):
+        """
+        Populate lookup list for MWIS calculations
+        """
+        self.lookup[0] = 0
+        self.lookup[1] = self.nodes[0].weight
+
+        self.lookupNodes[0] = [self.nodes[0]]
+        self.lookupNodes[1] = [self.nodes[1]]
+
+        i = 2
+
+        while i < len(self.nodes):
+            node = self.nodes[i - 1]  # current node
+            self.lookup[i] = max(self.lookup[i-1],
+                                 self.lookup[i-2] + node.weight)
+            i += 1
+
+
+    def compute_MWIS(self):
         """
         Computes maximum-weight independent set
         returns maximum weight and M-W set
@@ -62,13 +95,15 @@ if __name__ == "__main__":
     vert_weights = list(map(int, file))
 
     graph = Graph()
-    graph.buildNodes(vert_weights)
-    maxSet, maxWeight = graph.computeMWIS()
+    graph.build_nodes(vert_weights)
+    graph.populate_lookup()
+
+    maxSet, maxWeight = graph.compute_MWIS()
 
     testNodes = [1,2,3,4,17,117,517,997]
     bits = ''
 
-    vecfunc = np.vectorize(Node.getVal, otypes=[object])
+    vecfunc = np.vectorize(Node.get_val, otypes=[object])
     vals = set(vecfunc(maxSet))
 
     for test in testNodes:
