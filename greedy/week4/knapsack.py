@@ -14,39 +14,35 @@ class KnapSack:
     def __init__(self, value_weights, size):
         self.size = size
         self.vw = np.array(value_weights)
-        self.matrix = np.zeros((len(value_weights), size + 1), dtype=int)
+#        self.matrix = np.zeros((len(value_weights), size + 1), dtype=int)
 
-        self.case1 = 0
-        self.case2 = 0
         self.lookup = {}
 
-        self.capacity = np.zeros(size + 1)
+#    def _get_max(self, index, weight):
+#        """
+#        returns max value given index of object in self.vw
+#        """
+#        value_i = self.vw[index, 0]
+#        weight_i = self.vw[index, 1]
+#        case_1_val = self.matrix[index-1, weight]
+#
+#        case_2_val = 0
+#        if weight > weight_i:
+#            case_2_val = self.matrix[index-1, weight - weight_i] + value_i
+#
+#        if case_1_val > case_2_val:
+#            return case_1_val
+#        return case_2_val
 
-    def _get_max(self, index, weight):
-        """
-        returns max value given index of object in self.vw
-        """
-        value_i = self.vw[index, 0]
-        weight_i = self.vw[index, 1]
-        case_1_val = self.matrix[index-1, weight]
-
-        case_2_val = 0
-        if weight > weight_i:
-            case_2_val = self.matrix[index-1, weight - weight_i] + value_i
-
-        if case_1_val > case_2_val:
-            return case_1_val
-        return case_2_val
-
-    def compute_max_value(self):
-        """
-        Computes maximum value and within capacity of the knapsack size
-        """
-        for value in range(1, len(self.vw)):
-            for weight in range(self.size + 1):
-                self.matrix[value, weight] = self._get_max(value, weight)
-
-        return self.matrix[-1, -1]
+#    def compute_max_value(self):
+#        """
+#        Computes maximum value and within capacity of the knapsack size
+#        """
+#        for value in range(1, len(self.vw)):
+#            for weight in range(self.size + 1):
+#                self.matrix[value, weight] = self._get_max(value, weight)
+#
+#        return self.matrix[-1, -1]
 
     def _sort_vw(self):
         """
