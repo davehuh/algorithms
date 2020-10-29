@@ -68,7 +68,7 @@ class KnapSack:
 
         # num 5
         if weight_i > capacity:
-            self.lookup[(index, capacity)] = 0
+#            self.lookup[(index, capacity)] = 0
             return 0
 
         # num 6
@@ -77,11 +77,11 @@ class KnapSack:
             return value_i
 
         if index == 0:
-            self.lookup[(index, capacity)] = 0
+            self.lookup[(index, capacity)] = value_i
             return value_i
 
         # num 7
-        case_1_val = self._get_max_optimal(index-1, weight_i)
+        case_1_val = self._get_max_optimal(index-1, capacity)
         case_2_val = self._get_max_optimal(index-1, capacity - weight_i) + value_i
 
         if case_1_val > case_2_val:
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     knapsack = KnapSack(value_weight_list, knapsack_size)
 
-    print("iterative: ", knapsack.compute_max_value())
+#    print("iterative: ", knapsack.compute_max_value())
 #    print(knapsack.matrix)
 #    print(np.sum(knapsack.matrix[0,:]))
 
