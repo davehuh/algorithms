@@ -54,7 +54,7 @@ class BellmanFord:
         self.graph = graph
         self.num_vert = num_vert
         self.num_edges = num_edges
-        self.matrix = np.zeros((num_edges, num_vert))
+        self.matrix = np.full((num_edges, num_vert), np.inf)
 
     def _buildMatrix(self):
         """
@@ -120,7 +120,7 @@ class BellmanFord:
         """
         copmutes shortest path between source and destination
         """
-        self._buildMatrix()
+#        self._buildMatrix()
         self.matrix[0, source-1] = 0
 
         vertex_queue = deque([source])
@@ -128,33 +128,46 @@ class BellmanFord:
         min_distance = np.inf
 
         for num_edge in range(1, self.num_edges):
+#            print("  EDGE BUDGET: ", num_edge)
             if not vertex_queue:
                 break
 
-            vertex = vertex_queue.pop()
+            newVertices = deque()
 
-            vertex_edges = []
-            if vertex in self.graph.dict:
-                vertex_edges = self.graph.dict[vertex]
+#            print("vertex queue: ", vertex_queue)
 
-            for edge in vertex_edges:
-                head = edge.head
-                tail = edge.tail
-                cost = edge.length
+            while vertex_queue:
+                vertex = vertex_queue.pop()
 
-                case1 = self.matrix[num_edge-1, head-1]
+                vertex_edges = []
+                if vertex in self.graph.dict:
+                    vertex_edges = self.graph.dict[vertex]
 
-                # TODO tail is v not w
-                case2 = self.matrix[num_edge-1, tail-1] + cost
+                seen_vertices_in_iter = set()
 
-                minCase1Case2 = min(case1, case2)
+                for edge in vertex_edges:
+                    head = edge.head
+                    tail = edge.tail
+                    cost = edge.length
+#                    print("edge: ", tail, " to ", head)
+#                    print("cost", cost)
 
-                if minCase1Case2 < min_distance:
-                    min_distance = minCase1Case2
+                    case1 = self.matrix[num_edge-1, head-1]
 
-                self.matrix[num_edge, head-1] = minCase1Case2
+                    case2 = self.matrix[num_edge-1, tail-1] + cost
 
-                vertex_queue.appendleft(head)
+                    min_case1_or_case2 = min(case1, case2)
+
+                    min_distance = min(min_distance, min_case1_or_case2)
+
+                    self.matrix[num_edge, head-1] = min(self.matrix[num_edge, head-1],
+                                                        min_case1_or_case2)
+
+                    if head not in seen_vertices_in_iter:
+                        seen_vertices_in_iter.add(head)
+                        newVertices.appendleft(head)
+
+            vertex_queue = deque(newVertices)
 
         return min_distance
 
@@ -191,4 +204,4 @@ if __name__ == "__main__":
         bf = BellmanFord(vertices_lengths, graph_, num_vert, num_edges)
         min_dist = min(min_dist, bf.compute_shortest_path(vertex))
 
-    print(min_dist)
+    print('min dist: ', min_dist)
