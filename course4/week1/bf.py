@@ -7,6 +7,7 @@ import sys
 import numpy as np
 
 from collections import deque
+from numba import jit
 
 
 class Edge:
@@ -54,90 +55,36 @@ class BellmanFord:
         self.graph = graph
         self.num_vert = num_vert
         self.num_edges = num_edges
-        self.matrix = np.full((num_edges, num_vert), np.inf)
-
-    def _buildMatrix(self):
-        """
-        Builds a reference matrix of edge cost
-        """
-        self.matrix[0, :] = np.inf
-#        for edge in self.el:
-#            row = edge[0]
-#            col = edge[1]
-#            val = edge[2]
-#            self.matrix[row, col] = val
-
-    def _getMinEdgeCost(self, tail, head):
-        _minCost = np.inf
-
-        _edgeList = self.graph[tail]
-
-        for edge in _edgeList:
-            tail = edge.tail
-            headCheck = edge.head
-            cost = edge.length
-            if headCheck == head:
-                _minCost = min(cost, _minCost)
-        return _minCost
-
-    def _evaluateCase2(self, vertex, penUltVertices, edge):
-        _case2 = np.inf
-        _minVert = -1
-
-        for pVert in penUltVertices:
-            costWtoV = self._getMinEdgeCost(pVert, vertex)
-            lookup = self.matrix[edge-1, pVert] + costWtoV
-
-            if lookup < _case2:
-                _minVert = pVert
-                _case2 = lookup
-
-        return _case2
-
-    def computeShortestPath(self, source):
-        """
-        Performs shortest path between source and destination
-        """
-        self.matrix[0, source] = 0
-
-        penUltVert_Dict = {}  # w (penultimate) vertices
-
-        for edge in range(1, self.num_edges):
-            for vertex in range(self.num_vert):
-                case1 = self.matrix[edge-1, vertex]
-
-                case2 = np.inf
-
-                # evalute case 2
-                if vertex in penUltVert_Dict:
-                    penUltVertices = penUltVert_Dict[vertex]
-
-                    case2 = self._evaluateCase2(vertex, penUltVertices, edge)
-
-                self.matrix[edge, vertex] = min(case1, case2)
+        self.matrix = np.full((num_edges+1, num_vert), np.inf)
 
     def compute_shortest_path(self, source):
         """
         copmutes shortest path between source and destination
         """
-#        self._buildMatrix()
         self.matrix[0, source-1] = 0
 
         vertex_queue = deque([source])
 
         min_distance = np.inf
 
-        for num_edge in range(1, self.num_edges):
-#            print("  EDGE BUDGET: ", num_edge)
+        negative_cycle_checksum = 0
+        for num_edge in range(1, self.num_edges + 1):
+
+#            print("edge budget: ", num_edge)
+
             if not vertex_queue:
                 break
 
-            newVertices = deque()
+            new_vertices = deque()
 
-#            print("vertex queue: ", vertex_queue)
-
+            seen_vertices = set()
             while vertex_queue:
                 vertex = vertex_queue.pop()
+
+                if vertex in seen_vertices:
+                    continue
+                else:
+                    seen_vertices.add(vertex)
 
                 vertex_edges = []
                 if vertex in self.graph.dict:
@@ -149,8 +96,6 @@ class BellmanFord:
                     head = edge.head
                     tail = edge.tail
                     cost = edge.length
-#                    print("edge: ", tail, " to ", head)
-#                    print("cost", cost)
 
                     case1 = self.matrix[num_edge-1, head-1]
 
@@ -165,9 +110,17 @@ class BellmanFord:
 
                     if head not in seen_vertices_in_iter:
                         seen_vertices_in_iter.add(head)
-                        newVertices.appendleft(head)
+                        new_vertices.appendleft(head)
 
-            vertex_queue = deque(newVertices)
+            vertex_queue = deque(new_vertices)
+
+            if num_edge == self.num_edges - 1:
+                negative_cycle_checksum = min_distance
+            elif num_edge == self.num_edges:
+                if negative_cycle_checksum == min_distance:
+                    break
+                else:
+                    return None
 
         return min_distance
 
@@ -182,19 +135,10 @@ if __name__ == "__main__":
     vertices_lengths = [list(map(int, row)) for row in file]
 
     num_vert, num_edges = vertices_lengths.pop(0)
-
-    s = 1
-    v = 3
+    print("vert: ", num_vert, " edges: ", num_edges)
 
     graph_ = Graph(vertices_lengths)
     graph_.build_graph()
-
-#
-#    print(graph_.dict)
-#
-#    bf = BellmanFord(graph_.dict, num_vert, num_edges)
-#    bf = BellmanFord(vertices_lengths, graph_, num_vert, num_edges)
-#    bf.computeShortestPath(s)
 
     min_dist = np.inf
 
@@ -202,6 +146,12 @@ if __name__ == "__main__":
 
     for vertex in vertices:
         bf = BellmanFord(vertices_lengths, graph_, num_vert, num_edges)
-        min_dist = min(min_dist, bf.compute_shortest_path(vertex))
+        min_from_bf = bf.compute_shortest_path(vertex)
+
+        if min_from_bf:
+            min_dist = min(min_dist, min_from_bf)
+        else:
+            min_dist = None
+            break
 
     print('min dist: ', min_dist)
