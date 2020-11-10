@@ -7,6 +7,8 @@ all points shortest distance problem
 import sys
 import numpy as np
 
+from numba import jit
+
 
 class Edge:
     """
@@ -43,10 +45,12 @@ class Graph:
 
 
 class FloydWarshall:
-    def __init__(self, _graph, num_edges, num_vertices):
+    def __init__(self, _graph, num_edges, num_vertices, edge_list):
         self.graph = _graph  # graph object with edge objects
         self.num_edges = num_edges  # int type
         self.num_vertices = num_vertices  # int type
+        self.edge_list = edge_list
+
         self.reference_matrix = np.full((num_vertices+1,
                                          num_vertices+1, num_vertices+1), np.inf)
         self.seen_vertices = set()  # reduce extra work if vertices were considered
@@ -57,18 +61,25 @@ class FloydWarshall:
         """
         np.fill_diagonal(self.reference_matrix[:,:,0], 0)
 
-        for i in range(1, self.num_vertices+1):
-            for j in range(1, self.num_vertices+1):
-                if i == j:
-                    continue
+        for edge in self.edge_list:
+            i = edge[0]
+            j = edge[1]
+            cost = edge[2]
 
-                if i in self.graph:
-                    edges = self.graph[i]
+            self.reference_matrix[i,j,0] = cost
 
-                    for edge in edges:
-                        target = edge.head
-                        if target == j:
-                            self.reference_matrix[i, j, 0] = edge.cost
+#        for i in range(1, self.num_vertices+1):
+#            for j in range(1, self.num_vertices+1):
+#                if i == j:
+#                    continue
+#
+#                if i in self.graph:
+#                    edges = self.graph[i]
+#
+#                    for edge in edges:
+#                        target = edge.head
+#                        if target == j:
+#                            self.reference_matrix[i, j, 0] = edge.cost
 
 
     def compute_all_points_shortest_path_distances(self):
@@ -76,6 +87,7 @@ class FloydWarshall:
         Compute minimum of all points shortest path distances
         """
         min_dist = np.inf
+
         for k in range(1, self.num_vertices+1):
             for i in range(1, self.num_vertices+1):
                 for j in range(1, self.num_vertices+1):
@@ -87,6 +99,36 @@ class FloydWarshall:
                     min_dist = min(self.reference_matrix[i,j,k], min_dist)
 
         return min_dist
+
+
+@jit(nopython=True)
+def compute_all_points_shortest_path_distances(num_vertices, reference_matrix):
+    """
+    Compute minimum of all points shortest path distances
+    """
+    min_dist = np.inf
+
+    for k in range(1, num_vertices+1):
+        for i in range(1, num_vertices+1):
+            for j in range(1, num_vertices+1):
+                case_1 = reference_matrix[i, j, k-1]
+                case_2 = reference_matrix[i, k, k-1] + \
+                    reference_matrix[k, j, k-1]
+                reference_matrix[i,j,k] = min(case_1, case_2)
+
+                min_dist = min(reference_matrix[i,j,k], min_dist)
+
+    return reference_matrix, min_dist
+
+
+def check_negative_cycle(reference_matrix, min_dist):
+    diag_array = np.diagonal(reference_matrix)
+
+    if np.any(diag_array < 0):
+        return None
+
+    return min_dist
+
 
 
 def build_edge_list(edges):
@@ -126,11 +168,18 @@ if __name__ == "__main__":
     num_vertices, num_edges, edge_list = read_file(input_file)
 
     edge_list = np.array(edge_list)
-    edge_list = build_edge_list(edge_list)
+    edge_list_obj = build_edge_list(edge_list)
 
-    graph = Graph(edge_list)
+    graph = Graph(edge_list_obj)
     graph = graph.build_graph()
 
-    floyd_warshall = FloydWarshall(graph, num_edges, num_vertices)
+    floyd_warshall = FloydWarshall(graph, num_edges, num_vertices, edge_list)
     floyd_warshall.initialize_reference_matrix()
-    shortest_distance = floyd_warshall.compute_all_points_shortest_path_distances()
+
+#    shortest_distance = floyd_warshall.compute_all_points_shortest_path_distances()
+#    print(shortest_distance)
+
+    ref_matrix, dist = compute_all_points_shortest_path_distances(num_vertices,
+                                                                  floyd_warshall.reference_matrix)
+    shortest_distance = check_negative_cycle(ref_matrix, dist)
+    print(shortest_distance)
