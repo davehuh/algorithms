@@ -22,7 +22,8 @@ class Traveling_Salesman:
     """
     def __init__(self, cities_list: list, num_cities: int):
         self.cities_list = cities_list
-        self.ref_matrix = np.full((num_cities + 1, num_cities + 1), np.inf)
+#        self.ref_matrix = np.full((num_cities + 1, num_cities + 1), np.inf)
+        self.ref_matrix = np.zeros((num_cities + 1, num_cities + 1))
 
     def build_cities_list(self):
         """
@@ -37,20 +38,21 @@ class Traveling_Salesman:
 
         return self.cities_list
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def compute_minimum_dist(source, ref_matrix, num_cities, cities_list):
     """
     Calculates minimum TSP
     """
     if source == 1:
         ref_matrix[source, 1] = 0
+    else:
+        ref_matrix[source, 1] = np.inf
 
     global_min_dist = np.inf
 
     num_cities = num_cities + 1
     for subproblem_size_m in range(2, num_cities):
         set_s = list(range(1, subproblem_size_m + 1))
-        set_k = list(range(1, subproblem_size_m + 1))
 
         for destination_j in set_s:
             if destination_j == 1:
@@ -82,11 +84,11 @@ def compute_distance(city_1, city_2):
     """
     Computes Cartegian distance between two 2-D points
     """
-    x_1 = city_1.x
-    y_1 = city_1.y
+    x_1 = city_1[0]
+    y_1 = city_1[1]
 
-    x_2 = city_2.x
-    y_2 = city_2.y
+    x_2 = city_2[0]
+    y_2 = city_2[1]
 
     dist = math.sqrt((x_1-x_2)**2 + (y_1-y_2)**2)
     return dist
@@ -107,12 +109,24 @@ if __name__=="__main__":
     num_vertices = int(vertices.pop(0)[0])
 
     ts = Traveling_Salesman(vertices, num_vertices)
-    cities_list = ts.build_cities_list()
+#    cities_list = ts.build_cities_list()
     ref_matrix = ts.ref_matrix
 
     minimum_dist = np.inf
-    for city in range(1, num_vertices+1):
-        minimum_dist = min(minimum_dist,
-                           compute_minimum_dist(city, ref_matrix, num_vertices, cities_list))
+#    for city in range(1, num_vertices+1):
+#        minimum_dist = min(minimum_dist,
+#                           compute_minimum_dist(city, ref_matrix, num_vertices, vertices))
+    minimum_dist = compute_minimum_dist(1, ref_matrix, num_vertices, vertices)
 
-    print(minimum_dist)
+    city_1 = vertices[0]
+    cumulated_dist = 0
+
+    for city_idx in range(2, num_vertices+1):
+        if city_idx > 2:
+            city_1 = vertices[city_idx - 2]
+        city_dest = vertices[city_idx - 1]
+
+        cumulated_dist += compute_distance(city_1, city_dest)
+
+    print("check dist: ", cumulated_dist)
+    print("answer: ", minimum_dist)
