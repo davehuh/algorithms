@@ -8,6 +8,8 @@ import math
 import numpy as np
 
 from numba import jit
+from itertools import combinations
+
 
 class City:
     def __init__(self, coordinate_list):
@@ -38,45 +40,88 @@ class Traveling_Salesman:
 
         return self.cities_list
 
+def set_generator(source, budget_size, num_cities):
+    iterable = range(1, num_cities)
+    sets = combinations(iterable, budget_size)
+
+    final_sets = []
+
+    for a_set in sets:
+        if source in a_set:
+            final_sets.append(a_set)
+
+    return final_sets
+
+def generate_all_sets(source, num_cities):
+    sets = []
+    budgets = range(1, num_cities)
+
+    for budget in budgets:
+        sets.extend(set_generator(source, budget, num_cities))
+
+    print(sets)
+    return sets
+
+
+def compute_num_sets(source, num_cities):
+    num_sets = 0
+    budgets = range(1, num_cities)
+
+    for budget in budgets:
+        num_sets += len(set_generator(source, budget, num_cities))
+
+    return num_sets
+
 #@jit(nopython=True)
-def compute_minimum_dist(source, ref_matrix, num_cities, cities_list):
+def compute_minimum_dist(source, num_cities, cities_list):
     """
     Calculates minimum TSP
     """
-    if source == 1:
-        ref_matrix[source, 1] = 0
-    else:
-        ref_matrix[source, 1] = np.inf
+    num_cities += 1
+    sets = generate_all_sets(source, num_cities)
+    num_sets = len(sets)
+    ref_matrix = np.zeros((num_sets, num_cities))
+    ref_matrix[:, source] = np.inf
+    ref_matrix[source, source] = 0
 
     global_min_dist = np.inf
 
-    num_cities = num_cities + 1
-    for subproblem_size_m in range(2, num_cities):
-        set_s = list(range(1, subproblem_size_m + 1))
+    set_idx = 0
+    for budget_size_m in range(2, num_cities):
+        sets = set_generator(source, budget_size_m, num_cities)
+        print("budget: ", budget_size_m)
+        print(sets)
 
-        for destination_j in set_s:
-            if destination_j == 1:
-                continue
+        for set_s in sets:
+            for destination_j in set_s:
+                if destination_j == source:
+                    continue
 
-            city_j = cities_list[destination_j-1]
+                city_j = cities_list[destination_j-1]
 
-            for pen_ult_dest_k in set_s:
-                if pen_ult_dest_k != destination_j:
-                    city_k = cities_list[pen_ult_dest_k-1]
-                    cost_k_j = compute_distance(city_k, city_j)
+                for pen_ult_dest_k in set_s:
+                    if pen_ult_dest_k != destination_j:
+                        city_k = cities_list[pen_ult_dest_k-1]
+                        cost_k_j = compute_distance(city_k, city_j)
 
-                    ref_matrix[source, destination_j] = \
-                        min(ref_matrix[source - destination_j, pen_ult_dest_k] + cost_k_j,
-                            ref_matrix[source, destination_j])
+                        #  TODO path idx logic needs more thought
+                        path_s_k = pen_ult_dest_k
+                        shortest_path_source_to_k = ref_matrix[destination_j, pen_ult_dest_k]
 
-            city_1 = cities_list[0]
-            cost_j_1 = compute_distance(city_1, city_j)
+                        ref_matrix[source, destination_j] = \
+                            min(shortest_path_source_to_k + cost_k_j,
+                                ref_matrix[source, destination_j])
 
-            global_min_dist = min(global_min_dist,
-                                  ref_matrix[1, destination_j] + cost_j_1)
-            global_min_dist = min(global_min_dist,
-                                  ref_matrix[subproblem_size_m, destination_j] + cost_j_1)
+            set_idx += 1
+#                city_1 = cities_list[0]
+#                cost_j_1 = compute_distance(city_1, city_j)
 
+    #            global_min_dist = min(global_min_dist,
+    #                                  ref_matrix[1, destination_j] + cost_j_1)
+    #            global_min_dist = min(global_min_dist,
+    #                                  ref_matrix[subproblem_size_m, destination_j] + cost_j_1)
+
+    print("matrix: \n", ref_matrix)
     return global_min_dist
 
 
@@ -108,25 +153,26 @@ if __name__=="__main__":
 
     num_vertices = int(vertices.pop(0)[0])
 
-    ts = Traveling_Salesman(vertices, num_vertices)
-#    cities_list = ts.build_cities_list()
-    ref_matrix = ts.ref_matrix
+#    ts = Traveling_Salesman(vertices, num_vertices)
+#    ref_matrix = ts.ref_matrix
 
     minimum_dist = np.inf
+
 #    for city in range(1, num_vertices+1):
 #        minimum_dist = min(minimum_dist,
 #                           compute_minimum_dist(city, ref_matrix, num_vertices, vertices))
-    minimum_dist = compute_minimum_dist(1, ref_matrix, num_vertices, vertices)
+    minimum_dist = compute_minimum_dist(1, num_vertices, vertices)
+#
+#    print("answer: ", minimum_dist)
 
-    city_1 = vertices[0]
-    cumulated_dist = 0
-
-    for city_idx in range(2, num_vertices+1):
-        if city_idx > 2:
-            city_1 = vertices[city_idx - 2]
-        city_dest = vertices[city_idx - 1]
-
-        cumulated_dist += compute_distance(city_1, city_dest)
-
-    print("check dist: ", cumulated_dist)
-    print("answer: ", minimum_dist)
+#    city_1 = vertices[0]
+#    cumulated_dist = 0
+#
+#    for city_idx in range(2, num_vertices+1):
+#        if city_idx > 2:
+#            city_1 = vertices[city_idx - 2]
+#        city_dest = vertices[city_idx - 1]
+#
+#        cumulated_dist += compute_distance(city_1, city_dest)
+#
+#    print("check dist: ", cumulated_dist)
