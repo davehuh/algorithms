@@ -6,39 +6,11 @@ Traveling salesman problem for special case of small vertices
 import sys
 import math
 import numpy as np
+import matplotlib.pyplot as plt
 
 from numba import jit
 from itertools import combinations
 
-
-class City:
-    def __init__(self, coordinate_list):
-        self.x = coordinate_list[0]
-        self.y = coordinate_list[1]
-
-
-class Traveling_Salesman:
-    """
-    Traveling salesman algorithm
-    Assumes each city is visited once
-    """
-    def __init__(self, cities_list: list, num_cities: int):
-        self.cities_list = cities_list
-#        self.ref_matrix = np.full((num_cities + 1, num_cities + 1), np.inf)
-        self.ref_matrix = np.zeros((num_cities + 1, num_cities + 1))
-
-    def build_cities_list(self):
-        """
-        Build list of City object from raw list
-        """
-        cities = []
-
-        for city in self.cities_list:
-            cities.append(City(city))
-
-        self.cities_list = cities
-
-        return self.cities_list
 
 def set_generator(source, budget_size, num_cities):
     iterable = range(1, num_cities)
@@ -78,7 +50,6 @@ def compute_minimum_dist(source, num_cities, cities_list):
 
     set_key_indices_dict = {k: v for v, k in enumerate(sets)}
 
-#    ref_matrix = np.zeros((num_sets, num_cities))
     ref_matrix = np.full((num_sets, num_cities), np.inf)
     ref_matrix[:, source] = np.inf
     ref_matrix[source, source] = 0
@@ -95,6 +66,11 @@ def compute_minimum_dist(source, num_cities, cities_list):
             dest = set_s[0]
             ref_matrix[set_s_idx, dest] = 0
 
+        if len(set_s) == 2:
+            dest = set_s[1]
+            cost_i_j = compute_distance(city_source, cities_list[dest-1])
+            ref_matrix[set_s_idx, dest] = cost_i_j
+            continue
 
         for destination_j in set_s:
             if destination_j == source:
@@ -109,6 +85,8 @@ def compute_minimum_dist(source, num_cities, cities_list):
             tmp_min = np.inf
             for pen_ult_dest_k in set_s:
                 #  TODO check if condition statement
+                if pen_ult_dest_k == source:
+                    continue
                 if pen_ult_dest_k != destination_j:
                     city_k = cities_list[pen_ult_dest_k-1]
                     cost_k_j = compute_distance(city_k, city_j)
@@ -125,15 +103,16 @@ def compute_minimum_dist(source, num_cities, cities_list):
 #                    print("tmp min ", tmp_min)
 
             ref_matrix[set_s_idx, destination_j] = tmp_min
+#            print("final matrix dist:", tmp_min)
 
             if set_s_idx == ref_matrix.shape[0] - 1 and \
                     destination_j != source:
                 cost_j_source = compute_distance(city_source, city_j)
-                print(cost_j_source)
+#                print(cost_j_source)
                 global_min_dist = min(global_min_dist,
                                       tmp_min + cost_j_source)
 
-    print("matrix: \n", ref_matrix)
+#    print("matrix: \n", ref_matrix)
     return math.floor(global_min_dist)
 
 
@@ -165,11 +144,9 @@ if __name__=="__main__":
 
     num_vertices = int(vertices.pop(0)[0])
 
-#    ts = Traveling_Salesman(vertices, num_vertices)
-#    ref_matrix = ts.ref_matrix
-
     minimum_dist = np.inf
 
+    vertices = np.array(vertices)
 #    for city in range(1, num_vertices+1):
 #        minimum_dist = min(minimum_dist,
 #                           compute_minimum_dist(city, ref_matrix, num_vertices, vertices))
@@ -177,11 +154,5 @@ if __name__=="__main__":
 
     print("answer: ", minimum_dist)
 
-#    for city_idx in range(2, num_vertices+1):
-#        if city_idx > 2:
-#            city_1 = vertices[city_idx - 2]
-#        city_dest = vertices[city_idx - 1]
-#
-#        cumulated_dist += compute_distance(city_1, city_dest)
-#
-#    print("check dist: ", cumulated_dist)
+#    plt.scatter(vertices[:,0], vertices[:, 1])
+#    plt.show()
