@@ -59,18 +59,12 @@ def generate_all_sets(source, num_cities):
     for budget in budgets:
         sets.extend(set_generator(source, budget, num_cities))
 
-    print(sets)
     return sets
 
-
-def compute_num_sets(source, num_cities):
-    num_sets = 0
-    budgets = range(1, num_cities)
-
-    for budget in budgets:
-        num_sets += len(set_generator(source, budget, num_cities))
-
-    return num_sets
+def generate_key_without_j(orig_key, remove_j):
+    output_key = list(orig_key)
+    output_key.remove(remove_j)
+    return tuple(output_key)
 
 #@jit(nopython=True)
 def compute_minimum_dist(source, num_cities, cities_list):
@@ -79,50 +73,68 @@ def compute_minimum_dist(source, num_cities, cities_list):
     """
     num_cities += 1
     sets = generate_all_sets(source, num_cities)
+#    print(sets)
     num_sets = len(sets)
-    ref_matrix = np.zeros((num_sets, num_cities))
+
+    set_key_indices_dict = {k: v for v, k in enumerate(sets)}
+
+#    ref_matrix = np.zeros((num_sets, num_cities))
+    ref_matrix = np.full((num_sets, num_cities), np.inf)
     ref_matrix[:, source] = np.inf
     ref_matrix[source, source] = 0
 
     global_min_dist = np.inf
+    city_source = cities_list[source-1]
 
-    set_idx = 0
-    for budget_size_m in range(2, num_cities):
-        sets = set_generator(source, budget_size_m, num_cities)
-        print("budget: ", budget_size_m)
-        print(sets)
+    for set_s in sets:
+#        print("\n path:", set_s)
+        set_s_idx = set_key_indices_dict[set_s]
+#        print("set idx:", set_s_idx)
+        # base case
+        if len(set_s) == 1:
+            dest = set_s[0]
+            ref_matrix[set_s_idx, dest] = 0
 
-        for set_s in sets:
-            for destination_j in set_s:
-                if destination_j == source:
-                    continue
 
-                city_j = cities_list[destination_j-1]
+        for destination_j in set_s:
+            if destination_j == source:
+                continue
 
-                for pen_ult_dest_k in set_s:
-                    if pen_ult_dest_k != destination_j:
-                        city_k = cities_list[pen_ult_dest_k-1]
-                        cost_k_j = compute_distance(city_k, city_j)
+            city_j = cities_list[destination_j-1]
 
-                        #  TODO path idx logic needs more thought
-                        path_s_k = pen_ult_dest_k
-                        shortest_path_source_to_k = ref_matrix[destination_j, pen_ult_dest_k]
+            set_key_without_j = generate_key_without_j(set_s, destination_j)
+            set_to_k_idx = set_key_indices_dict[set_key_without_j]
+#            print("path w/o j:", set_key_without_j, "idx:", set_to_k_idx)
 
-                        ref_matrix[source, destination_j] = \
-                            min(shortest_path_source_to_k + cost_k_j,
-                                ref_matrix[source, destination_j])
+            tmp_min = np.inf
+            for pen_ult_dest_k in set_s:
+                #  TODO check if condition statement
+                if pen_ult_dest_k != destination_j:
+                    city_k = cities_list[pen_ult_dest_k-1]
+                    cost_k_j = compute_distance(city_k, city_j)
+#                    print("k:", pen_ult_dest_k,
+#                          "j:" , destination_j,
+#                          " cost k to j: ", cost_k_j)
 
-            set_idx += 1
-#                city_1 = cities_list[0]
-#                cost_j_1 = compute_distance(city_1, city_j)
+                    #  TODO path idx logic needs more thought
+                    shortest_path_source_to_k = ref_matrix[set_to_k_idx, pen_ult_dest_k]
 
-    #            global_min_dist = min(global_min_dist,
-    #                                  ref_matrix[1, destination_j] + cost_j_1)
-    #            global_min_dist = min(global_min_dist,
-    #                                  ref_matrix[subproblem_size_m, destination_j] + cost_j_1)
+#                    print("dist to k: ", shortest_path_source_to_k)
+
+                    tmp_min = min(shortest_path_source_to_k + cost_k_j, tmp_min)
+#                    print("tmp min ", tmp_min)
+
+            ref_matrix[set_s_idx, destination_j] = tmp_min
+
+            if set_s_idx == ref_matrix.shape[0] - 1 and \
+                    destination_j != source:
+                cost_j_source = compute_distance(city_source, city_j)
+                print(cost_j_source)
+                global_min_dist = min(global_min_dist,
+                                      tmp_min + cost_j_source)
 
     print("matrix: \n", ref_matrix)
-    return global_min_dist
+    return math.floor(global_min_dist)
 
 
 def compute_distance(city_1, city_2):
@@ -162,12 +174,9 @@ if __name__=="__main__":
 #        minimum_dist = min(minimum_dist,
 #                           compute_minimum_dist(city, ref_matrix, num_vertices, vertices))
     minimum_dist = compute_minimum_dist(1, num_vertices, vertices)
-#
-#    print("answer: ", minimum_dist)
 
-#    city_1 = vertices[0]
-#    cumulated_dist = 0
-#
+    print("answer: ", minimum_dist)
+
 #    for city_idx in range(2, num_vertices+1):
 #        if city_idx > 2:
 #            city_1 = vertices[city_idx - 2]
