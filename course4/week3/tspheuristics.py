@@ -77,32 +77,51 @@ def compute_minimum_TSP(paths):
     while len(remaining_paths) > 0:
         next_path_mask = False
         next_path = []
-        next_path_mask = ((remaining_paths[:, 0] == next_starting_point) | \
-            (remaining_paths[:, 1] == next_starting_point)) & \
+
+#        print('next starting:', next_starting_point)
+#        print("visited:", visited_vertices.keys())
+#        next_path_mask = ((remaining_paths[:, 0] == next_starting_point) | \
+#            (remaining_paths[:, 1] == next_starting_point)) & \
+#            (
+#                ~np.isin(remaining_paths[:, 0], list(visited_vertices), assume_unique=True) | \
+#                ~np.isin(remaining_paths[:, 1], list(visited_vertices), assume_unique=True)
+#            )
+
+        next_path_mask = (
             (
-                ~np.isin(remaining_paths[:, 0], list(visited_vertices), assume_unique=True) | \
-                ~np.isin(remaining_paths[:, 1], list(visited_vertices), assume_unique=True)
+                (remaining_paths[:, 0] == next_starting_point)
+                 & \
+                (~np.isin(remaining_paths[:, 1], list(visited_vertices)))
             )
+            | \
+            (
+                (remaining_paths[:, 1] == next_starting_point)
+                 & \
+                (~np.isin(remaining_paths[:, 0], list(visited_vertices)))
+            )
+        )
 
         next_paths = remaining_paths[next_path_mask]
 
+        if len(next_paths) == 0:
+            break
         next_path = next_paths[0,:]
-
-        visited_vertices.update(dict.fromkeys(next_path[:2]))
-        total_squared_distance += next_path[2]
+#        print('next path:', next_path)
 
         if next_path[1] in visited_vertices:
             next_starting_point = next_path[0]
         else:
             next_starting_point = next_path[1]
 
+        visited_vertices.update(dict.fromkeys(next_path[:2]))
+        total_squared_distance += next_path[2]
+
         remaining_path_mask = ~np.isin(remaining_paths[:, 0], list(visited_vertices), assume_unique=True) | \
             ~np.isin(remaining_paths[:, 1], list(visited_vertices), assume_unique=True)
-#         print("visited:", visited_vertices)
-#         print("remaining paths:\n", remaining_paths)
+#        print("remaining paths:\n", remaining_paths)
 #         print('remaining mask\n', remaining_path_mask)
         remaining_paths = remaining_paths[remaining_path_mask]
-#            print('remaining paths:\n', remaining_paths)
+#        print('remaining paths:\n', remaining_paths)
 
 #        else:
 #            print('here')
@@ -117,8 +136,7 @@ def compute_minimum_TSP(paths):
     final_path_to_start = paths[(paths[:,0] == 1) & (paths[:, 1] == next_starting_point)][0]
     total_squared_distance += final_path_to_start[2]
 
-#    print(visited_vertices)
-#    return math.floor(math.sqrt(total_squared_distance))
+#    print(visited_vertices.keys())
     return math.floor(total_squared_distance)
 
 
