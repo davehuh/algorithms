@@ -54,7 +54,7 @@ class TravelingSalesmanHeuristics:
         return (x1 - x2)**2 + (y1 - y2)**2
 
 
-def compute_minimum_TSP(paths):
+def compute_minimum_TSP(paths, num_cities):
     """
     Computes minimum TSP
     """
@@ -67,25 +67,13 @@ def compute_minimum_TSP(paths):
     remaining_paths = paths[paths[:, 0] != 1]
 
     first_path = starting_paths[0,:]
-#    print('starting path:', first_path)
-#    print('original remaining paths:\n', remaining_paths)
     next_starting_point = first_path[1]
-#    print('first next starting point:', next_starting_point)
     visited_vertices.update(dict.fromkeys(first_path[:2]))
     total_squared_distance += first_path[2]
 
-    while len(remaining_paths) > 0:
+    while len(visited_vertices) < num_cities:
         next_path_mask = False
         next_path = []
-
-#        print('next starting:', next_starting_point)
-#        print("visited:", visited_vertices.keys())
-#        next_path_mask = ((remaining_paths[:, 0] == next_starting_point) | \
-#            (remaining_paths[:, 1] == next_starting_point)) & \
-#            (
-#                ~np.isin(remaining_paths[:, 0], list(visited_vertices), assume_unique=True) | \
-#                ~np.isin(remaining_paths[:, 1], list(visited_vertices), assume_unique=True)
-#            )
 
         next_path_mask = (
             (
@@ -103,10 +91,7 @@ def compute_minimum_TSP(paths):
 
         next_paths = remaining_paths[next_path_mask]
 
-        if len(next_paths) == 0:
-            break
         next_path = next_paths[0,:]
-#        print('next path:', next_path)
 
         if next_path[1] in visited_vertices:
             next_starting_point = next_path[0]
@@ -116,24 +101,14 @@ def compute_minimum_TSP(paths):
         visited_vertices.update(dict.fromkeys(next_path[:2]))
         total_squared_distance += next_path[2]
 
-        remaining_path_mask = ~np.isin(remaining_paths[:, 0], list(visited_vertices), assume_unique=True) | \
-            ~np.isin(remaining_paths[:, 1], list(visited_vertices), assume_unique=True)
-#        print("remaining paths:\n", remaining_paths)
-#         print('remaining mask\n', remaining_path_mask)
+        remaining_path_mask = ~np.isin(remaining_paths[:, 0], list(visited_vertices)) | \
+            ~np.isin(remaining_paths[:, 1], list(visited_vertices))
+
         remaining_paths = remaining_paths[remaining_path_mask]
-#        print('remaining paths:\n', remaining_paths)
-
-#        else:
-#            print('here')
-#            next_path = remaining_paths[:]
-#            visited_vertices.update(dict.fromkeys(next_path[:2]))
-#            total_squared_distance += next_path[2]
-#            remaining_paths = []
-
 
     next_starting_point = list(visited_vertices)[-1]
-#    print("last key: ", next_starting_point)
     final_path_to_start = paths[(paths[:,0] == 1) & (paths[:, 1] == next_starting_point)][0]
+    print("final path:", final_path_to_start)
     total_squared_distance += final_path_to_start[2]
 
 #    print(visited_vertices.keys())
@@ -160,5 +135,5 @@ if __name__ == '__main__':
     tsp = TravelingSalesmanHeuristics(cities)
     paths_combinations = tsp.precompute_all_pair_distances()
 
-    min_dist = compute_minimum_TSP(paths_combinations)
+    min_dist = compute_minimum_TSP(paths_combinations, num_cities)
     print('min_dist:', min_dist)
