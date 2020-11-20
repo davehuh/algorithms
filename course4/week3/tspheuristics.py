@@ -16,8 +16,10 @@ class TravelingSalesmanHeuristics:
     Computes shortest distance for the traveling
     salesman problem using a heuristics
     """
-    def __init__(self, cities):
+    def __init__(self, cities, num_cities):
         self.cities = cities
+        self.num_cities = num_cities
+        self.visited_vertices = {}
 
     def precompute_all_pair_distances(self):
         """
@@ -53,66 +55,95 @@ class TravelingSalesmanHeuristics:
 
         return (x1 - x2)**2 + (y1 - y2)**2
 
+    def compute_path_combinations(self, starting_point, remaining_cities: set):
+        """
+        Compute all combinations of pairwise distances and stores to dictionary
+        """
+        cities_keys = remaining_cities
+        cities_keys.add(starting_point)
+#        combinations_city_pairs = combinations(cities_keys, 2)
+        combinations_city_pairs = [combo for combo in combinations(cities_keys, 2) \
+            if combo[0] == starting_point or combo[1] == starting_point]
 
-def compute_minimum_TSP(paths, num_cities):
-    """
-    Computes minimum TSP
-    """
-    visited_vertices = dict()
-    total_squared_distance = 0
+        # filter out paths that don't contain starting_point
 
-    paths = paths[np.argsort(paths[:,2])]
-    paths[:, 2] = np.vectorize(np.sqrt)(paths[:, 2])
-    starting_paths = paths[paths[:,0] == 1]
-    remaining_paths = paths[paths[:, 0] != 1]
+#        combo_array = np.array(list(combinations_city_pairs))
+        combo_array = np.array(combinations_city_pairs)
+        distances = np.vectorize(self.compute_distance_between_two_cities)(combo_array[:, 0],
+                                                                             combo_array[:, 1])
+        distances = distances.reshape((distances.shape[0], 1))
 
-    first_path = starting_paths[0,:]
-    next_starting_point = first_path[1]
-    visited_vertices.update(dict.fromkeys(first_path[:2]))
-    total_squared_distance += first_path[2]
+        combo_array = np.hstack((combo_array, distances))
 
-    while len(visited_vertices) < num_cities:
-        next_path_mask = False
-        next_path = []
+        return combo_array
 
-        next_path_mask = (
-            (
-                (remaining_paths[:, 0] == next_starting_point)
-                 & \
-                (~np.isin(remaining_paths[:, 1], list(visited_vertices)))
-            )
-            | \
-            (
-                (remaining_paths[:, 1] == next_starting_point)
-                 & \
-                (~np.isin(remaining_paths[:, 0], list(visited_vertices)))
-            )
-        )
+    def compute_minimum_TSP(self):
+        """
+        Computes minimum TSP
+        """
+        total_squared_distance = 0
+        next_starting_point = 1
+        vertices_to_visit = set(list(range(1, self.num_cities + 1)))
 
-        next_paths = remaining_paths[next_path_mask]
+#        paths = paths[np.argsort(paths[:,2])]
+        paths = self.compute_path_combinations(next_starting_point,
+                                               vertices_to_visit)
+        print(paths)
+        sys.exit(1)
+        paths[:, 2] = np.vectorize(np.sqrt)(paths[:, 2])
+        starting_paths = paths[paths[:,0] == 1]
+        remaining_paths = paths[paths[:, 0] != 1]
 
-        next_path = next_paths[0,:]
+        first_path = starting_paths[0,:]
+        next_starting_point = first_path[1]
+        self.visited_vertices.update(dict.fromkeys(first_path[:2]))
+        vertices_to_visit -= self.visited_vertices.keys()
+        total_squared_distance += first_path[2]
 
-        if next_path[1] in visited_vertices:
-            next_starting_point = next_path[0]
-        else:
-            next_starting_point = next_path[1]
+        while len(self.visited_vertices) < self.num_cities:
+            next_path_mask = False
+            next_path = []
 
-        visited_vertices.update(dict.fromkeys(next_path[:2]))
-        total_squared_distance += next_path[2]
+    #        next_path_mask = (
+    #            (
+    #                (remaining_paths[:, 0] == next_starting_point)
+    #                 & \
+    #                (~np.isin(remaining_paths[:, 1], list(visited_vertices)))
+    #            )
+    #            | \
+    #            (
+    #                (remaining_paths[:, 1] == next_starting_point)
+    #                 & \
+    #                (~np.isin(remaining_paths[:, 0], list(visited_vertices)))
+    #            )
+    #        )
+    #
+    #        next_paths = remaining_paths[next_path_mask]
 
-        remaining_path_mask = ~np.isin(remaining_paths[:, 0], list(visited_vertices)) | \
-            ~np.isin(remaining_paths[:, 1], list(visited_vertices))
+            next_paths = self.compute_path_combinations(next_starting_point,
+                                                        vertices_to_visit)
+            next_path = next_paths[0,:]
 
-        remaining_paths = remaining_paths[remaining_path_mask]
+            if next_path[1] in self.visited_vertices:
+                next_starting_point = next_path[0]
+            else:
+                next_starting_point = next_path[1]
 
-    next_starting_point = list(visited_vertices)[-1]
-    final_path_to_start = paths[(paths[:,0] == 1) & (paths[:, 1] == next_starting_point)][0]
-    print("final path:", final_path_to_start)
-    total_squared_distance += final_path_to_start[2]
+            self.visited_vertices.update(dict.fromkeys(next_path[:2]))
+            total_squared_distance += next_path[2]
 
-#    print(visited_vertices.keys())
-    return math.floor(total_squared_distance)
+            remaining_path_mask = ~np.isin(remaining_paths[:, 0], list(self.visited_vertices)) | \
+                ~np.isin(remaining_paths[:, 1], list(self.visited_vertices))
+
+            remaining_paths = remaining_paths[remaining_path_mask]
+
+        next_starting_point = list(self.visited_vertices)[-1]
+        final_path_to_start = paths[(paths[:,0] == 1) & (paths[:, 1] == next_starting_point)][0]
+        print("final path:", final_path_to_start)
+        total_squared_distance += final_path_to_start[2]
+
+    #    print(visited_vertices.keys())
+        return math.floor(total_squared_distance)
 
 
 
@@ -132,8 +163,8 @@ if __name__ == '__main__':
 
     cities = np.array(cities)
 
-    tsp = TravelingSalesmanHeuristics(cities)
-    paths_combinations = tsp.precompute_all_pair_distances()
+    tsp = TravelingSalesmanHeuristics(cities, num_cities)
+#    paths_combinations = tsp.precompute_all_pair_distances()
 
-    min_dist = compute_minimum_TSP(paths_combinations, num_cities)
+    min_dist = tsp.compute_minimum_TSP()
     print('min_dist:', min_dist)
