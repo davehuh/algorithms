@@ -62,7 +62,8 @@ class TravelingSalesmanHeuristics:
         cities_keys = remaining_cities
         cities_keys.add(starting_point)
 #        combinations_city_pairs = combinations(cities_keys, 2)
-        combinations_city_pairs = [combo for combo in combinations(cities_keys, 2) \
+        raw_combos = combinations(cities_keys, 2)
+        combinations_city_pairs = [combo for combo in raw_combos \
             if combo[0] == starting_point or combo[1] == starting_point]
 
         # filter out paths that don't contain starting_point
@@ -74,6 +75,7 @@ class TravelingSalesmanHeuristics:
         distances = distances.reshape((distances.shape[0], 1))
 
         combo_array = np.hstack((combo_array, distances))
+        combo_array = combo_array[np.argsort(combo_array[:, 2])]
 
         return combo_array
 
@@ -85,16 +87,16 @@ class TravelingSalesmanHeuristics:
         next_starting_point = 1
         vertices_to_visit = set(list(range(1, self.num_cities + 1)))
 
-#        paths = paths[np.argsort(paths[:,2])]
         paths = self.compute_path_combinations(next_starting_point,
                                                vertices_to_visit)
-        print(paths)
-        sys.exit(1)
-        paths[:, 2] = np.vectorize(np.sqrt)(paths[:, 2])
-        starting_paths = paths[paths[:,0] == 1]
-        remaining_paths = paths[paths[:, 0] != 1]
 
-        first_path = starting_paths[0,:]
+        first_path = paths[0,:]
+        first_path[2] = math.sqrt(first_path[2])
+#        paths[:, 2] = np.vectorize(np.sqrt)(paths[:, 2])
+#        starting_paths = paths[paths[:,0] == 1]
+#        remaining_paths = paths[paths[:, 0] != 1]
+#
+#        first_path = starting_paths[0,:]
         next_starting_point = first_path[1]
         self.visited_vertices.update(dict.fromkeys(first_path[:2]))
         vertices_to_visit -= self.visited_vertices.keys()
@@ -122,7 +124,19 @@ class TravelingSalesmanHeuristics:
 
             next_paths = self.compute_path_combinations(next_starting_point,
                                                         vertices_to_visit)
+            next_path_mask = (
+                (
+                    ~np.isin(next_paths[:, 1], list(self.visited_vertices))
+                )
+                | \
+                (
+                    ~np.isin(next_paths[:, 0], list(self.visited_vertices))
+                )
+            )
+
+            next_paths = next_paths[next_path_mask]
             next_path = next_paths[0,:]
+            next_path[2] = math.sqrt(next_path[2])
 
             if next_path[1] in self.visited_vertices:
                 next_starting_point = next_path[0]
@@ -132,15 +146,21 @@ class TravelingSalesmanHeuristics:
             self.visited_vertices.update(dict.fromkeys(next_path[:2]))
             total_squared_distance += next_path[2]
 
-            remaining_path_mask = ~np.isin(remaining_paths[:, 0], list(self.visited_vertices)) | \
-                ~np.isin(remaining_paths[:, 1], list(self.visited_vertices))
+            vertices_to_visit -= self.visited_vertices.keys()
 
-            remaining_paths = remaining_paths[remaining_path_mask]
+#            remaining_path_mask = 0
+##            remaining_path_mask = ~np.isin(remaining_paths[:, 0], list(self.visited_vertices)) | \
+##                ~np.isin(remaining_paths[:, 1], list(self.visited_vertices))
+#
+#            remaining_paths = remaining_paths[remaining_path_mask]
 
         next_starting_point = list(self.visited_vertices)[-1]
-        final_path_to_start = paths[(paths[:,0] == 1) & (paths[:, 1] == next_starting_point)][0]
-        print("final path:", final_path_to_start)
-        total_squared_distance += final_path_to_start[2]
+        final_dist = math.sqrt(self.compute_distance_between_two_cities(1, next_starting_point))
+        total_squared_distance += final_dist
+        print("final path:", 1, 'to', next_starting_point)
+#        final_path_to_start = paths[(paths[:,0] == 1) & (paths[:, 1] == next_starting_point)][0]
+#        print("final path:", final_path_to_start)
+#        total_squared_distance += final_path_to_start[2]
 
     #    print(visited_vertices.keys())
         return math.floor(total_squared_distance)
