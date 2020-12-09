@@ -39,7 +39,7 @@ def find_shortest_path(graph, source, dest):
     queue, visited, mins = [(0, source, ())], set(), {source: 0}
 
     while queue:
-        cost, key, path = heappop(queue)
+        (cost, key, path) = heappop(queue)
         if key not in visited:
             visited.add(key)
             path = path + (key,)
@@ -49,9 +49,9 @@ def find_shortest_path(graph, source, dest):
             for head, c in graph.get(key, ()):
                 curr_cost = mins.get(head, None)
                 new_cost = cost + c
-                if not curr_cost or new_cost < curr_cost:
+                if curr_cost is None or new_cost < curr_cost:
                     mins[head] = new_cost
-                    heappush(queue, (new_cost, key, path))
+                    heappush(queue, (new_cost, head, path))
 
     return 10**6, None
 
