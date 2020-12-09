@@ -26,6 +26,36 @@ def build_graph(file_name):
 
     return graph
 
+
+def find_shortest_path(graph, source, dest):
+    """
+    Compute shortest path from source to destination vertices
+    :param graph: is a dict objet of adjacent vertices
+    :param source: is a key to the starting vertex
+    :param dest: is a key to the final vertex
+    return: cost and path
+    """
+    # queue: cost, key, path
+    queue, visited, mins = [(0, source, ())], set(), {source: 0}
+
+    while queue:
+        cost, key, path = heappop(queue)
+        if key not in visited:
+            visited.add(key)
+            path = path + (key,)
+            if key == dest:
+                return cost, path
+
+            for head, c in graph.get(key, ()):
+                curr_cost = mins.get(head, None)
+                new_cost = cost + c
+                if not curr_cost or new_cost < curr_cost:
+                    mins[head] = new_cost
+                    heappush(queue, (new_cost, key, path))
+
+    return 10**6, None
+
+
 def main():
     """
     main
@@ -35,6 +65,17 @@ def main():
         sys.exit(1)
 
     graph = build_graph(sys.argv[1])
+
+    source = 1
+    dest_list = [7,37,59,82,99,115,133,165,188,197]
+    num_dest = len(dest_list)
+    distances = []
+
+    for idx, dest in enumerate(dest_list):
+        print('progress:', idx+1, '/', num_dest)
+        distances.append(find_shortest_path(graph, source, dest)[0])
+
+    print(distances)
 
 if __name__ == "__main__":
     STACK_SIZE = 67108864
