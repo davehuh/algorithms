@@ -5,38 +5,61 @@ Shortest path using Dijkstra's algorithm
 
 import sys
 import threading
-import heapq
+
+from collections import defaultdict
+from heapq import heappop, heappush
 
 def read_file(file_name):
     """
-    build adjacency list
+    build graph structure
+    :param file_name: string file path
+    :return: graph structure
     """
     if len(sys.argv) != 2:
         print("Usage: python3 shortest_path_v2.py <file name>")
         sys.exit(1)
 
-    file = open(file_name, 'r')
-    a_list = file.readlines()
-    file.close()
 
-    a_list = [row.strip().split('\t') for row in a_list]
+    graph = defaultdict(list)
 
-    for l_idx, line in enumerate(a_list):
-        for e_idx, ele in enumerate(line):
-            if e_idx == 0:
-                a_list[l_idx][e_idx] = int(ele)
-                continue
-            a_list[l_idx][e_idx] = tuple(map(int, ele.strip().split(',')))
-    return a_list
+    with open(file_name) as f:
+        for lines in f:
+            line = lines.split()
+            if line:
+                node = int(line[0])
+                heads = [int(ln.split(',')[0]) for ln in line[1:]]
+                costs = [int(ln.split(',')[1]) for ln in line[1:]]
+                graph[node] = [(head, cost) for head, cost in zip(heads, costs)]
+
+    return graph
 
 
-def shortest_path(source, dest):
+def shortest_path(graph, source, dest):
     """
-    find shortest path dist
+    compute shortest path distance with Dijkstra's shortest path algorithm
+    :param graph: dict representing graph struture
+    :param source: origin vertex
+    :param dest: end vertex
+    :return: shortest distance from source to destination vertices
     """
-    dist = 0
+    queue, visited, mins = [(0, source, ())], set(), {source: 0}
 
-    return dist
+    while queue:
+        (cost, vertex, path) = heappop(queue)
+        if vertex not in visited:
+            visited.add(vertex)
+            path = path + (vertex,)
+            if vertex == dest:
+                return cost, path
+
+            for head, c in graph.get(vertex, ()):
+                curr_cost = mins.get(head, None)
+                new_cost = cost + c
+                if curr_cost is None or new_cost < curr_cost:
+                    mins[head] = new_cost
+                    heappush(queue, (new_cost, head, path))
+
+    return 10**6, None
 
 
 def main():
@@ -44,7 +67,7 @@ def main():
     main
     """
 
-    adjacency_list = read_file(sys.argv[1])
+    graph = read_file(sys.argv[1])
 
     source = 1
     dest_list = [7,37,59,82,99,115,133,165,188,197]
@@ -52,7 +75,7 @@ def main():
 
     for idx, vertex in enumerate(dest_list):
         print("progress:", idx+1, '/', len(dest_list))
-        distances.append(shortest_path(source, vertex))
+        distances.append(shortest_path(graph, source, vertex)[0])
 
     print(distances)
 
