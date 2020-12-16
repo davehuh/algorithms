@@ -2,13 +2,12 @@
 Bellman-Ford algorithm
 """
 
+from collections import defaultdict
+from tqdm import tqdm
+
+import threading
 import sys
 import numpy as np
-import threading
-
-from collections import defaultdict
-from heapq import heapify
-
 
 def build_graph(file_path):
     """
@@ -42,6 +41,42 @@ def build_graph(file_path):
 
     return graph, graph_rev, nodes, num_nodes, num_edges
 
+
+def assign_current_cost_path_for_node(node, node_key, budget_curr, budget_prev, visited):
+    """
+    Assign cost and path to current budget iteration
+    and node
+    :param node: current destination node
+    :param node_key: index to current node
+    :param budget_curr: current idx to save memory space
+    :param budget_prev: previous idx to save memory space
+    :param visited: a set to keep track of visited nodes
+    """
+    global MATRIX, MATRIX_PATH
+    previous_cost = MATRIX[budget_prev, node_key]
+    previous_path = MATRIX_PATH[budget_prev][node_key]
+
+    alt_cost, penultimate_node, alt_path = find_min_w_to_v(node, visited)
+
+    if previous_cost <= alt_cost:
+        MATRIX[budget_curr, node_key] = previous_cost
+        MATRIX_PATH[budget_curr][node_key] = previous_path
+    else:
+        MATRIX[budget_curr, node_key] = alt_cost
+        MATRIX_PATH[budget_curr][node_key] = alt_path
+
+
+def recycle_reference_matrices(node_key, budget_curr, budget_prev):
+    """
+    Recycle references matrices to save memory space
+    :param node_key: index to node
+    :param budget_curr: index to current budget iteration
+    :param budget_prev: index to previous budget iteration
+    """
+    global MATRIX, MATRIX_PATH
+    MATRIX[budget_prev, node_key] = MATRIX[budget_curr, node_key]
+    MATRIX_PATH[budget_prev][node_key] = MATRIX_PATH[budget_curr][node_key]
+
 def find_shortest_path(source):
     """
     find shortest path from source vertex to destination
@@ -53,43 +88,29 @@ def find_shortest_path(source):
     global GRAPH, GRAPH_REV, NODES, MATRIX, MATRIX_PATH
     shortest_cost = np.inf
 
-    MATRIX = np.zeros((2, len(NODES)))
+    MATRIX = np.zeros((2, len(NODES)))  # row 1 is previous budget, row 2 is curr budget
     MATRIX_PATH = [[[] for _ in range(len(NODES))] for _ in range(2)]
-    print(MATRIX_PATH)
 
     MATRIX[0, :] = np.inf
-    MATRIX[0, source-1] = 0  # i = budget(prev:curr), j = node(0:len(nodes)); cost
+    MATRIX[0, source-1] = 0  # row is budget iterations, columns are nodes
 
     neg_cycle_checksum = np.inf
     early_exit_checksum = np.inf
 
     visited = set([source])
 
-    for budget in range(1, len(NODES) + 1):
+    for budget in tqdm(range(1, len(NODES) + 1)):
         budget_prev = 0
         budget_curr = 1
         for node in NODES:
             visited.add(node)
             node_key = node - 1
-            previous_cost = MATRIX[budget_prev, node_key]
-            previous_path = MATRIX_PATH[budget_prev][node_key]
+            assign_current_cost_path_for_node(node, node_key, budget_curr, budget_prev, visited)
 
-            alt_cost, penultimate_node, alt_path = find_min_w_to_v(node, visited)
+            early_exit_checksum = min(early_exit_checksum, MATRIX[budget_curr, node_key])
 
-            if previous_cost <= alt_cost:
-                MATRIX[budget_curr, node_key] = previous_cost
-                MATRIX_PATH[budget_curr][node_key] = previous_path
-
-                early_exit_checksum = min(early_exit_checksum, previous_cost)
-            else:
-                MATRIX[budget_curr, node_key] = alt_cost
-                MATRIX_PATH[budget_curr][node_key] = alt_path
-
-                early_exit_checksum = min(early_exit_checksum, alt_cost)
-
-            # reuse memory
-            MATRIX[budget_prev, node_key] = MATRIX[budget_curr, node_key]
-            MATRIX_PATH[budget_prev][node_key] = MATRIX_PATH[budget_curr][node_key]
+            # reuse same memory space
+            recycle_reference_matrices(node_key, budget_curr, budget_prev)
 
         # check for early exit
         if early_exit_checksum == shortest_cost:  # shortest_cost is currently previously shortest
