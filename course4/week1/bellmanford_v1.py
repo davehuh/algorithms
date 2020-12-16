@@ -50,50 +50,51 @@ def find_shortest_path(source):
     :return cost: total cost of shortest path
     :return path: path of shortest path
     """
-#    global GRAPH, GRAPH_REV, NODES, NUM_NODES, NUM_EDGES, MATRIX, MATRIX_PATH
-    global GRAPH, GRAPH_REV, NODES, NUM_NODES, NUM_EDGES, MATRIX
+    global GRAPH, GRAPH_REV, NODES, MATRIX, MATRIX_PATH
     shortest_cost = np.inf
-#    shortest_path = None
 
-    MATRIX = np.full((2, len(NODES)), np.inf)
-#    MATRIX_PATH = np.full((2, len(NODES)), (np.inf))
+    MATRIX = np.zeros((2, len(NODES)))
+    MATRIX_PATH = [[[] for _ in range(len(NODES))] for _ in range(2)]
+    print(MATRIX_PATH)
 
+    MATRIX[0, :] = np.inf
     MATRIX[0, source-1] = 0  # i = budget(prev:curr), j = node(0:len(nodes)); cost
 
     neg_cycle_checksum = np.inf
     early_exit_checksum = np.inf
 
-    for budget in range(len(NODES) + 1):
+    visited = set([source])
+
+    for budget in range(1, len(NODES) + 1):
         budget_prev = 0
         budget_curr = 1
         for node in NODES:
+            visited.add(node)
             node_key = node - 1
             previous_cost = MATRIX[budget_prev, node_key]
-#            previous_path = MATRIX_PATH[budget_prev, node_key]
+            previous_path = MATRIX_PATH[budget_prev][node_key]
 
-#            alt_cost, alt_path, penultimate_node = find_min_w_to_v(node, MATRIX, MATRIX_PATH)
-            alt_cost, penultimate_node = find_min_w_to_v(node, MATRIX)
+            alt_cost, penultimate_node, alt_path = find_min_w_to_v(node, visited)
 
             if previous_cost <= alt_cost:
                 MATRIX[budget_curr, node_key] = previous_cost
+                MATRIX_PATH[budget_curr][node_key] = previous_path
+
                 early_exit_checksum = min(early_exit_checksum, previous_cost)
-#                shortest_path = previous_path
             else:
-#                new_shortest_path = alt_path + (penultimate_node, node,)
                 MATRIX[budget_curr, node_key] = alt_cost
-#                MATRIX_PATH[budget_curr, node_key] = new_shortest_path
+                MATRIX_PATH[budget_curr][node_key] = alt_path
 
                 early_exit_checksum = min(early_exit_checksum, alt_cost)
-#                shortest_path = new_shortest_path
 
             # reuse memory
             MATRIX[budget_prev, node_key] = MATRIX[budget_curr, node_key]
-#            MATRIX_PATH[budget_prev, node_key] = MATRIX_PATH[budget_curr, node_key]
+            MATRIX_PATH[budget_prev][node_key] = MATRIX_PATH[budget_curr][node_key]
 
         # check for early exit
         if early_exit_checksum == shortest_cost:  # shortest_cost is currently previously shortest
             shortest_cost = early_exit_checksum
-#            return shortest_cost, shortest_path
+            print("early exit")
             return shortest_cost
 
         shortest_cost = early_exit_checksum
@@ -103,58 +104,64 @@ def find_shortest_path(source):
             neg_cycle_checksum = shortest_cost
 
         if budget == len(NODES) and shortest_cost < neg_cycle_checksum:
-#            return None, None  # detected negative cycle
             return None  # detected negative cycle
 
-#    return shortest_cost, shortest_path
     return shortest_cost
 
 
-
-#def find_min_w_to_v(dest, matrix, matrix_path):
-def find_min_w_to_v(dest, matrix):
+def find_min_w_to_v(dest, visited):
     """
     find the minimum path distance from penultimate vertex w
     to destination vertex v
     :param dest: key to final destination vertex
     :param matrix: reference matrix that stores cost
+    :param visited: set of visited matrix, those that are valid to be considered
     """
-    global GRAPH_REV
+    global GRAPH_REV, MATRIX, MATRIX_PATH, SOURCE
     min_cost = np.inf
-#    min_path = None
     min_node = None
+    min_path = []
 
-    penultimate_vertices = GRAPH_REV.get(dest, [])  # (cost, penultimate_node)
+    penultimate_vertices = GRAPH_REV.get(dest, np.array([]))  # (cost, penultimate_node)
     penultimate_vertices = list(zip(*penultimate_vertices))
 
     if penultimate_vertices:
         costs = penultimate_vertices[0]
         nodes = penultimate_vertices[1]
         for idx, node in enumerate(nodes):
+            if node not in visited:
+                continue
             cost = costs[idx]
             node_key = node-1
-            curr_cost = matrix[0, node_key]
-#            curr_path = matrix_path[0, node_key]
+            curr_cost = MATRIX[0, node_key]
 
             if curr_cost + cost < min_cost:
-                min_cost = curr_cost
-#                min_path = curr_path
+                min_cost = curr_cost + cost
                 min_node = node
+                min_path = MATRIX_PATH[0][node_key] + [dest]
 
-#    return min_cost, min_path, min_node
-    return min_cost, min_node
+    if min_path and min_path[0] != SOURCE:
+        min_path = [SOURCE] + min_path
+
+    return min_cost, min_node, min_path
 
 
 def main():
     """
     main
     """
-    global GRAPH, GRAPH_REV, NODES, NUM_NODES, NUM_EDGES, MATRIX
+    global GRAPH, GRAPH_REV, NODES, NUM_NODES, NUM_EDGES, MATRIX, MATRIX_PATH, SOURCE
 
     GRAPH, GRAPH_REV, NODES, NUM_NODES, NUM_EDGES = build_graph(sys.argv[1])
 
-    find_shortest_path(1)
-    print(MATRIX)
+    SOURCE = 1
+
+    shortest_cost = find_shortest_path(SOURCE)
+    if not shortest_cost:
+        print(shortest_cost, "detected negative cycle")
+    else:
+        print("cost matrix:", MATRIX[1])
+        print("path matrix:", MATRIX_PATH[1])
 
 
 if __name__ == "__main__":
