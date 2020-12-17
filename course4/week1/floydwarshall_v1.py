@@ -71,7 +71,7 @@ def assign_current_cost_path_for_node(visited, curr_budget_idx, prev_budget_idx,
     """
     Assign minimum cost and path to head node
     """
-    global GRAPH_REV, MATRIX_COST, MATRIX_PATH
+    global GRAPH_REV, MATRIX_COST, MATRIX_PATH, MIN_COST, MIN_COST_PATH
 
     prev_cost = MATRIX_COST[prev_budget_idx, tail_idx, head_idx]
     prev_path = MATRIX_PATH[prev_budget_idx][tail_idx][head_idx]
@@ -105,9 +105,13 @@ def assign_current_cost_path_for_node(visited, curr_budget_idx, prev_budget_idx,
 
     min_path = MATRIX_PATH[curr_budget_idx][tail_idx][head_idx]
 
-    if min_path and min_path[0] != tail_idx+1:
+    if min_path and min_path[0] != tail_idx+1:  # path starts with origin vertex
         MATRIX_PATH[curr_budget_idx][tail_idx][head_idx] = [tail_idx+1] + \
             MATRIX_PATH[curr_budget_idx][tail_idx][head_idx]
+
+    if MATRIX_COST[curr_budget_idx, tail_idx, head_idx] < MIN_COST:
+        MIN_COST = MATRIX_COST[curr_budget_idx, tail_idx, head_idx]
+        MIN_COST_PATH = MATRIX_PATH[curr_budget_idx][tail_idx][head_idx]
 
 
 def recycle_matrices(tail_idx, curr_budget_idx, prev_budget_idx):
@@ -120,7 +124,6 @@ def recycle_matrices(tail_idx, curr_budget_idx, prev_budget_idx):
     MATRIX_PATH[prev_budget_idx][tail_idx][:] = MATRIX_PATH[curr_budget_idx][tail_idx][:]
 
 
-
 # TODO numba optimization
 #@jit(nopython=True)
 def find_all_points_shortest_paths():
@@ -129,13 +132,16 @@ def find_all_points_shortest_paths():
     Using Floyd-Warshall algorithm
     """
     global GRAPH, GRAPH_REV, NODES, NUM_NODES, NUM_EDGES, MATRIX_COST, MATRIX_PATH
+    global MIN_COST, MIN_COST_PATH
 
     prev_budget_idx = 0
     curr_budget_idx = 1
 
     neg_cycle_checksum = 0
-    minimum_cost = 0
-    for budget_idx in tqdm(range(NUM_NODES)):  # delete tqdm to be numba compatible
+    MIN_COST = np.inf
+    MIN_COST_PATH = []
+
+    for budget_idx in tqdm(range(NUM_NODES + 1)):  # delete tqdm to be numba compatible
         for tail_idx in range(NUM_NODES):
             visited = set([tail_idx+1])
             for head_idx in range(NUM_NODES):
@@ -145,6 +151,14 @@ def find_all_points_shortest_paths():
                                       tail_idx, head_idx)
 
             recycle_matrices(tail_idx, curr_budget_idx, prev_budget_idx)
+
+        # check for negative cycle
+        if budget_idx == NUM_NODES-1:
+            neg_cycle_checksum = MIN_COST
+        elif budget_idx == NUM_NODES and MIN_COST < neg_cycle_checksum:
+            return None, [None]
+
+    return MIN_COST, MIN_COST_PATH
 
 
 def main():
@@ -156,10 +170,13 @@ def main():
     GRAPH, GRAPH_REV, NODES, NUM_NODES, NUM_EDGES = build_graph(sys.argv[1])
 
     initialize_matrices()
-    find_all_points_shortest_paths()
+    min_cost, min_path = find_all_points_shortest_paths()
 
-    print("COST MATRIX:\n", MATRIX_COST[1, :, :])
-    print("PATH MATRIX:\n", np.array(MATRIX_PATH[1], dtype=list))
+    if not min_cost:
+        print("Negative cycle detected")
+    else:
+        print("minimum cost:", min_cost, "path:", min_path, "path length:", len(min_path))
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
